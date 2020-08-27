@@ -3,88 +3,88 @@ const config = require('../database');
 
 const actividadesCtrl = {};
 
-actividadesCtrl.obtenerPendientes = async (req, res) => {
+actividadesCtrl.obtenerPendientes = async(req, res) => {
 
     const { sgi, role } = req.body;
     let registros = [];
 
     if (role == "Operador") {
-        
+
         // connect to your database
-        await sql.connect(config, function (err) {
+        await sql.connect(config, function(err) {
 
             if (err) return res.status(401).send(err);
-        
+
             let ps = new sql.PreparedStatement();
             ps.input('sgi', sql.VarChar);
             ps.input('status', sql.VarChar);
             ps.prepare('SELECT g.g_folio, m.id_maquina, m.m_maquina, a.id_actividad, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, g.g_operador, g.g_total_pendientes FROM d_mantto_general g LEFT JOIN c_mantto_actividades a ON g.g_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON g.g_maquina = m.id_maquina WHERE g.g_operador = @sgi AND g.g_status_now = @status', err => {
 
                 if (err) return res.status(401).send(err);
-            
-                ps.execute({sgi: sgi, status: 'Pendiente'}, (err, result) => {
-    
+
+                ps.execute({ sgi: sgi, status: 'Pendiente' }, (err, result) => {
+
                     if (err) return res.status(401).send(err);
-    
+
                     for (let i = 0; i < result.rowsAffected; i++) {
                         registros.push(result.recordset[i]);
                     }
-    
+
                     return res.status(200).json({ ok: true, registros: registros });
-    
+
                 });
-    
+
             });
-    
+
         });
 
     }
 
-    
+
 };
 
-actividadesCtrl.obtenerActividades = async (req, res) => {
+actividadesCtrl.obtenerActividades = async(req, res) => {
 
     const { folio } = req.body;
     let registros = [];
-    
+
     await sql.connect(config, function(err) {
 
         if (err) return res.status(401).send(err);
-        
+
         let sttmt = new sql.PreparedStatement();
-    
+
         sttmt.input('folio', sql.VarChar);
         sttmt.input('status', sql.VarChar);
         sttmt.prepare(`SELECT dsm.s_folio AS folio, dsm.s_maquina AS maquina, dsm.s_actividad AS actividad, csm.s_nombre AS nombre, dsm.s_id_sub_maquina AS id_sub_maquina FROM d_mantto_sub_maquinas dsm LEFT JOIN c_mantto_sub_maquinas csm ON dsm.s_id_sub_maquina = csm.id_sub_maquina WHERE s_folio = @folio AND s_status = @status`, err => {
 
             if (err) return res.status(401).send(err);
-    
-            sttmt.execute({folio: folio, status: 'Pendiente'}, (err, result) => {
-    
+
+            sttmt.execute({ folio: folio, status: 'Pendiente' }, (err, result) => {
+
                 if (err) return res.status(401).send(err);
-    
+
                 for (let i = 0; i < result.rowsAffected; i++) {
                     registros.push(result.recordset[i]);
                 }
 
                 return res.status(200).json({ ok: true, registros: registros });
-    
+
             });
-    
+
         });
 
     });
 
 }
 
-actividadesCtrl.obtenerActividad = async (req, res) => {
+actividadesCtrl.obtenerActividad = async(req, res) => {
 
     const { id_actividad, sgi, folio } = req.body;
     const registros = [];
 
     await sql.connect(config, function(err) {
-       
+
         if (err) return res.status(401).send(err);
 
         let sttmt = new sql.PreparedStatement();
@@ -94,7 +94,7 @@ actividadesCtrl.obtenerActividad = async (req, res) => {
 
             if (err) return res.status(401).send(err);
 
-            sttmt.execute({id: id_actividad, sgi: sgi, folio: folio, status: 'Pendiente'}, (err, result) => {
+            sttmt.execute({ id: id_actividad, sgi: sgi, folio: folio, status: 'Pendiente' }, (err, result) => {
 
                 if (err) return res.status(401).send(err);
 
@@ -107,15 +107,15 @@ actividadesCtrl.obtenerActividad = async (req, res) => {
             });
 
         })
-        
+
     });
 
 }
 
-actividadesCtrl.realizarActividad = async (req, res) => {
+actividadesCtrl.realizarActividad = async(req, res) => {
 
     const { id_actividad, folio, opcion, descripcion } = req.body;
-    
+
     await sql.connect(config, (err) => {
 
         if (err) return res.status(401).send(err);
@@ -129,7 +129,7 @@ actividadesCtrl.realizarActividad = async (req, res) => {
 
                 if (err) return res.status(401).send(err);
 
-                sttmt.execute({id: id_actividad, folio: folio, opcion: opcion, status: 'Pendiente'}, (err, result) => {
+                sttmt.execute({ id: id_actividad, folio: folio, opcion: opcion, status: 'Pendiente' }, (err, result) => {
 
                     if (err) return res.status(401).send(err);
 
@@ -170,7 +170,7 @@ actividadesCtrl.realizarActividad = async (req, res) => {
 
 }
 
-actividadesCtrl.obtenerRealizadas = async (req, res) => {
+actividadesCtrl.obtenerRealizadas = async(req, res) => {
 
     const { status, sgi } = req.body;
     const registros = [];
@@ -183,29 +183,29 @@ actividadesCtrl.obtenerRealizadas = async (req, res) => {
 
         sttmt.input('status', sql.VarChar).input('sgi', sql.VarChar);
         sttmt.prepare(`SELECT dsm.s_folio AS folio, dsm.s_maquina AS maquina, dsm.s_actividad AS actividad, csm.s_nombre AS nombre, dsm.s_id_sub_maquina AS id_sub_maquina, a.a_prioridad AS prioridad, a.a_tarea AS tarea FROM d_mantto_sub_maquinas dsm LEFT JOIN c_mantto_sub_maquinas csm ON dsm.s_id_sub_maquina = csm.id_sub_maquina RIGHT JOIN c_mantto_actividades a ON dsm.s_actividad = a.id_actividad WHERE dsm.s_status = @status AND dsm.s_operador = @sgi`, err => {
-            
+
             if (err) return res.status(401).send(err);
-    
-            sttmt.execute({status: status, sgi: sgi}, (err, result) => {
-    
+
+            sttmt.execute({ status: status, sgi: sgi }, (err, result) => {
+
                 if (err) return res.status(401).send(err);
-    
+
                 for (let i = 0; i < result.rowsAffected; i++) {
                     const registro = result.recordset[i];
                     registros.push(registro);
                 }
 
                 return res.status(200).json({ ok: true, registros: registros });
-                
+
             });
-    
+
         });
 
     })
-    
+
 }
 
-actividadesCtrl.obtenerAnomalias = async (req, res) => {
+actividadesCtrl.obtenerAnomalias = async(req, res) => {
 
     const { status, sgi } = req.body;
     const registros = [];
@@ -221,7 +221,7 @@ actividadesCtrl.obtenerAnomalias = async (req, res) => {
 
             if (err) return res.status(401).send(err);
 
-            sttmt.execute({status: status, sgi: sgi}, (err, result) => {
+            sttmt.execute({ status: status, sgi: sgi }, (err, result) => {
 
                 if (err) return res.status(401).send(err);
 
@@ -240,7 +240,7 @@ actividadesCtrl.obtenerAnomalias = async (req, res) => {
 
 }
 
-actividadesCtrl.cargarFoto = async (req, res) => {
+actividadesCtrl.cargarFoto = async(req, res) => {
 
     console.log(req.files);
     console.log(req.body);
@@ -250,9 +250,10 @@ actividadesCtrl.cargarFoto = async (req, res) => {
     }
 
     let foto = req.files.archivo;
+    console.log(foto);
 
     foto.mv('server/files/file_1.jpg', (err) => {
-        
+
     });
 
 }
