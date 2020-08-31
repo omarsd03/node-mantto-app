@@ -4,21 +4,21 @@ const SEED = require('../config/config').SEED;
 // ========================================
 // Verificar Token
 // ========================================
-exports.verifyToken = async function (req, res, next) {
+exports.verifyToken = async function(req, res, next) {
     try {
         if (!req.headers.authorization) {
             // return res.status(401).send('Token no valido');
             return res.status(401).json({
-              ok: false,
-              mensaje: "Token no valido",
+                ok: false,
+                mensaje: "Token no valido",
             });
         }
         let token = req.headers.authorization.split(' ')[1];
         if (token === 'null') {
             // return res.status(401).send('Token no valido');
             return res.status(401).json({
-              ok: false,
-              mensaje: "Token no valido",
+                ok: false,
+                mensaje: "Token no valido",
             });
         }
 
@@ -26,8 +26,8 @@ exports.verifyToken = async function (req, res, next) {
         if (!payload) {
             // return res.status(401).send('Token no valido');
             return res.status(401).json({
-              ok: false,
-              mensaje: "Token no valido",
+                ok: false,
+                mensaje: "Token no valido",
             });
         }
         req.userId = payload._id;
@@ -36,9 +36,9 @@ exports.verifyToken = async function (req, res, next) {
         //console.log(e)
         // return res.status(401).send('Token no valido');
         return res.status(401).json({
-          ok: false,
-          mensaje: "Token no valido",
-          errors: e,
+            ok: false,
+            mensaje: "Token no valido",
+            errors: e,
         });
     }
 }

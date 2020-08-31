@@ -4,17 +4,30 @@ const getMenuFrontend = (role = 'Operador') => {
 
         const menu = [{
                 titulo: 'Anomalias por Resolver',
-                icono: 'faWrench'
+                icono: 'wrench',
+                ruta: '/'
             },
             {
                 titulo: 'Anomalias Resueltas',
-                icono: 'faCheck'
+                icono: 'faCheck',
+                ruta: '/realizadas'
             },
             {
                 titulo: 'Historico de Actividades',
-                icono: 'faExclamationTriangle'
+                icono: 'faExclamationTriangle',
+                ruta: '/historico'
             }
         ];
+
+        return menu;
+
+    } else if (role == 'Interceptor') {
+
+        const menu = [{
+            titulo: 'Anomalias por Administrar',
+            icono: 'wrench',
+            ruta: '/'
+        }];
 
         return menu;
 
@@ -22,19 +35,23 @@ const getMenuFrontend = (role = 'Operador') => {
 
         menu = [{
                 titulo: 'Actividades Pendientes',
-                icono: 'faWrench'
+                icono: 'wrench',
+                ruta: '/'
             },
             {
                 titulo: 'Actividades Realizadas',
-                icono: 'faCheck'
+                icono: 'faCheck',
+                ruta: '/realizadas'
             },
             {
                 titulo: 'Anomalias Reportadas',
-                icono: 'faExclamationTriangle'
+                icono: 'faExclamationTriangle',
+                ruta: '/anomalias'
             },
             {
                 titulo: 'Historico de Actividades',
-                icono: 'faHistory'
+                icono: 'faHistory',
+                ruta: '/historico'
             }
         ];
 

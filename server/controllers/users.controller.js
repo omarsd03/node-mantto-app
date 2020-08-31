@@ -27,6 +27,7 @@ userCtrl.signIn = async(req, res) => {
                 if (result.rowsAffected[0] > 0) {
 
                     const user = result.recordset[0];
+                    console.log(user);
                     // const token = jwt.sign({ _id: user.id_user }, SEED, { expiresIn: 14400 });
                     const token = jwt.sign({ _id: user.id_user }, SEED, { expiresIn: '12h' });
                     user.user_password = ':)';
@@ -44,27 +45,5 @@ userCtrl.signIn = async(req, res) => {
     });
 
 }
-
-userCtrl.renewToken = async(req, res) => {
-
-    // const uid = req.uid;
-    console.log(req);
-
-    // Generar el TOKEN - JWT
-    // const token = await generarJWT(uid);
-
-    // // Obtener el usuario por UID
-    // const usuario = await Usuario.findById(uid);
-
-
-    // res.json({
-    //     ok: true,
-    //     token,
-    //     usuario,
-    //     menu: getMenuFrontEnd(usuario.role)
-    // });
-
-
-};
 
 module.exports = userCtrl;

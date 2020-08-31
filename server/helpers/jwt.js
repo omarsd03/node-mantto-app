@@ -2,12 +2,12 @@ const jwt = require('jsonwebtoken');
 
 const SEED = require("../config/config").SEED;
 
-const generarJWT = (uid) => {
+const generarJWT = async(id) => {
 
     return new Promise((resolve, reject) => {
 
         const payload = {
-            uid,
+            id,
         };
 
         jwt.sign(payload, SEED, {
@@ -29,5 +29,5 @@ const generarJWT = (uid) => {
 
 
 module.exports = {
-    generarJWT
+    generarJWT,
 }

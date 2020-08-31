@@ -40,7 +40,6 @@ actividadesCtrl.obtenerPendientes = async(req, res) => {
 
     }
 
-
 };
 
 actividadesCtrl.obtenerActividades = async(req, res) => {
