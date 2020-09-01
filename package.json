@@ -20,6 +20,7 @@
     "morgan": "^1.10.0",
     "mssql": "^6.2.1",
     "urlsafe-base64": "^1.0.0",
+    "uuid": "^8.3.0",
     "web-push": "^3.4.4"
   },
   "devDependencies": {

@@ -1,5 +1,6 @@
 const sql = require("mssql");
 const config = require('../database');
+const { v4: uuidv4 } = require('uuid');
 
 const actividadesCtrl = {};
 
@@ -89,7 +90,7 @@ actividadesCtrl.obtenerActividad = async(req, res) => {
         let sttmt = new sql.PreparedStatement();
 
         sttmt.input('id', sql.Int).input('sgi', sql.VarChar).input('folio', sql.VarChar).input('status', sql.VarChar);
-        sttmt.prepare(`SELECT sm.id_sub_maquina, sm.s_folio, m.m_maquina, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, a.a_categoria, a.a_resp_tarea FROM d_mantto_sub_maquinas sm LEFT JOIN c_mantto_actividades a ON sm.s_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON sm.s_maquina = m.id_maquina WHERE sm.id_sub_maquina = @id and a.a_resp_tarea = @sgi AND sm.s_folio = @folio AND sm.s_status = @status`, err => {
+        sttmt.prepare(`SELECT sm.id_sub_maquina, sm.s_folio, m.m_maquina, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, a.a_categoria, u.Name AS a_resp_tarea FROM d_mantto_sub_maquinas sm LEFT JOIN c_mantto_actividades a ON sm.s_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON sm.s_maquina = m.id_maquina LEFT JOIN users u ON a.a_resp_tarea = u.SGI WHERE sm.id_sub_maquina = @id and a.a_resp_tarea = @sgi AND sm.s_folio = @folio AND sm.s_status = @status`, err => {
 
             if (err) return res.status(401).send(err);
 
@@ -216,7 +217,7 @@ actividadesCtrl.obtenerAnomalias = async(req, res) => {
         let sttmt = new sql.PreparedStatement();
 
         sttmt.input('status', sql.VarChar).input('sgi', sql.VarChar);
-        sttmt.prepare(`SELECT dsm.s_folio AS folio, dsm.s_maquina AS maquina, dsm.s_actividad AS actividad, csm.s_nombre AS nombre, dsm.s_id_sub_maquina AS id_sub_maquina, a.a_prioridad AS prioridad, a.a_tarea AS tarea, dsm.s_tipo_anomalia AS tipo_anomalia, dsm.s_clasificacion_anomalia AS clasificacion_anomalia, dsm.s_comentarios AS descripcion_anomalia FROM d_mantto_sub_maquinas dsm LEFT JOIN c_mantto_sub_maquinas csm ON dsm.s_id_sub_maquina = csm.id_sub_maquina RIGHT JOIN c_mantto_actividades a ON dsm.s_actividad = a.id_actividad WHERE dsm.s_status = @status AND dsm.s_operador = @sgi`, err => {
+        sttmt.prepare(`SELECT dsm.s_folio AS folio, dsm.s_maquina AS maquina, a.a_zona_maquina AS zona_maquina, dsm.s_actividad AS actividad, csm.s_nombre AS nombre, dsm.s_id_sub_maquina AS id_sub_maquina, a.a_prioridad AS prioridad, a.a_tarea AS tarea, dsm.s_tipo_anomalia AS tipo_anomalia, dsm.s_clasificacion_anomalia AS clasificacion_anomalia, dsm.s_comentarios AS descripcion_anomalia FROM d_mantto_sub_maquinas dsm LEFT JOIN c_mantto_sub_maquinas csm ON dsm.s_id_sub_maquina = csm.id_sub_maquina RIGHT JOIN c_mantto_actividades a ON dsm.s_actividad = a.id_actividad WHERE dsm.s_status = @status AND dsm.s_operador = @sgi`, err => {
 
             if (err) return res.status(401).send(err);
 
@@ -241,19 +242,67 @@ actividadesCtrl.obtenerAnomalias = async(req, res) => {
 
 actividadesCtrl.cargarFoto = async(req, res) => {
 
-    console.log(req.files);
-    console.log(req.body);
+    const { tipo, folio, sgi } = req.body;
 
     if (!req.files || Object.keys(req.files).length === 0) {
-        return res.status(400).send('No existen archivos cargados');
+        return res.status(400).json({ msg: 'No existen archivos cargados' });
     }
 
-    let foto = req.files.archivo;
-    console.log(foto);
+    const file = req.files.archivo;
 
-    foto.mv('server/files/file_1.jpg', (err) => {
+    const nombreOriginal = file.name;
+    const modulo = 43;
+    const tipoMasterFiles = 'Evidencia';
+
+    const nombreCortado = file.name.split('.');
+    const extensionArchivo = nombreCortado[nombreCortado.length - 1];
+
+    // Validar extension
+    const extensionesValidas = ['png', 'jpg', 'jpeg'];
+
+    if (!extensionesValidas.includes(extensionArchivo)) {
+        return res.status(400).json({ ok: false, msg: 'La extension no esta permitida' });
+    }
+
+    const nombreArchivo = `${ uuidv4() }.${ extensionArchivo }`;
+    const path = `server/uploads/${tipo}/${nombreArchivo}`;
+
+    file.mv(path, (err) => {
+
+        if (err) {
+            return res.status(500).send(err);
+        }
+
+        return res.json({ ok: true, msg: 'Archivo cargado' });
 
     });
+
+    // sql.connect(config, (err) => {
+
+    //     if (err) return res.status(401).send(err);
+
+    //     let sttmt = new sql.PreparedStatement();
+
+    //     sttmt.input('folio', sql.VarChar).input('path', sql.VarChar).input('name', sql.VarChar).input('type', sql.VarChar).input('sgi', sql.VarChar).input('original_path', sql.VarChar).input('module', sql.Int)
+    //     sttmt.prepare(`INSERT INTO master_files (folio, path, original_name, type, sgi_enter, original_path, module) VALUES (@folio, @path, @name, @type, @sgi, @original_path, @modulo)`, err => {
+
+    //         if (err) return res.status(401).send(err);
+
+    //         sttmt.execute({ folio: folio, path: path, name: nombreOriginal, type: tipoMasterFiles, sgi: sgi, original_path: path, modulo: modulo }, (err, result) => {
+
+    //             if (err) return res.status(401).send(err);
+
+    //             if (result.rowsAffected[0] > 0) {
+    //                 return res.status(200).json({ ok: true, message: 'Archivo cargado!' });
+    //             } else {
+    //                 return res.status(400).json({ ok: false, message: 'Error al cargar archivo' });
+    //             }
+
+    //         })
+
+    //     });
+
+    // });
 
 }
 
