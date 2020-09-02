@@ -24,7 +24,7 @@ const getMenuFrontend = (role = 'Operador') => {
     } else if (role == 'Interceptor') {
 
         const menu = [{
-            titulo: 'Anomalias por Administrar',
+            titulo: 'Anomalias por Coordinar',
             icono: 'wrench',
             ruta: '/'
         }];
