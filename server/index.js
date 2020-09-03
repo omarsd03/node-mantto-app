@@ -17,6 +17,7 @@ app.use(fileUpload());
 app.use('/mantto', require('./routes/users.routes'));
 app.use('/mantto', require('./routes/actividades.routes'));
 app.use('/mantto', require('./routes/push.routes'));
+app.use('/mantto', require('./routes/builder.routes'));
 
 // starting the server
 app.listen(app.get('port'), () => {

@@ -69,23 +69,35 @@ actividadesCtrl.obtenerPendientes = async(req, res) => {
 
         });
 
-        // sql.connect(config).then(() => {
+    }
 
-        //     const status = 'Pendiente';
-        //     return sql.query `SELECT dsm.s_folio AS folio, dsm.s_maquina AS maquina, a.a_zona_maquina AS zona_maquina, dsm.s_actividad AS actividad, csm.s_nombre AS nombre, dsm.s_id_sub_maquina AS id_sub_maquina, a.a_prioridad AS prioridad, a.a_tarea AS tarea, dsm.s_tipo_anomalia AS tipo_anomalia, dsm.s_clasificacion_anomalia AS clasificacion_anomalia, dsm.s_comentarios AS descripcion_anomalia FROM progress_mantto p LEFT JOIN d_mantto_sub_maquinas dsm ON p.sub_actividad = dsm.s_id_sub_maquina LEFT JOIN c_mantto_sub_maquinas csm ON dsm.s_id_sub_maquina = csm.id_sub_maquina RIGHT JOIN c_mantto_actividades a ON dsm.s_actividad = a.id_actividad WHERE p.role = ${role} AND p.status = ${status}`
+    if (role == 'Responsable') {
 
-        // }).then(result => {
+        await sql.connect(config, function(err) {
 
-        //     for (let i = 0; i < result.rowsAffected; i++) {
-        //         registros.push(result.recordset[i]);
-        //     }
+            if (err) return res.status(401).send(err);
 
-        //     return res.status(200).json({ ok: true, registros: registros });
+            let sttmt = new sql.PreparedStatement();
+            sttmt.input('role', sql.VarChar).input('status', sql.VarChar).input('sgi', sql.VarChar)
+            sttmt.prepare('SELECT dsm.s_folio AS folio, dsm.s_maquina AS maquina, a.a_zona_maquina AS zona_maquina, dsm.s_actividad AS actividad, csm.s_nombre AS nombre, dsm.s_id_sub_maquina AS id_sub_maquina, a.a_prioridad AS prioridad, a.a_tarea AS tarea, dsm.s_tipo_anomalia AS tipo_anomalia, dsm.s_clasificacion_anomalia AS clasificacion_anomalia, dsm.s_comentarios AS descripcion_anomalia FROM progress_mantto p LEFT JOIN d_mantto_sub_maquinas dsm ON p.sub_actividad = dsm.s_id_sub_maquina LEFT JOIN c_mantto_sub_maquinas csm ON dsm.s_id_sub_maquina = csm.id_sub_maquina RIGHT JOIN c_mantto_actividades a ON dsm.s_actividad = a.id_actividad WHERE p.role = @role AND p.status = @status AND dsm.s_usr_now = @sgi', err => {
 
-        // }).catch(err => {
-        //     // ... error checks\
-        //     if (err) return res.status(401).json(err);
-        // })
+                if (err) return res.status(401).send(err);
+
+                sttmt.execute({ role: role, status: 'Pendiente', sgi: sgi }, (err, result) => {
+
+                    if (err) return res.status(401).send(err);
+
+                    for (let i = 0; i < result.rowsAffected; i++) {
+                        registros.push(result.recordset[i]);
+                    }
+
+                    return res.status(200).json({ ok: true, registros: registros });
+
+                });
+
+            });
+
+        });
 
     }
 
@@ -210,6 +222,7 @@ actividadesCtrl.realizarActividad = async(req, res) => {
 
                             if (err) return res.status(401).send(err);
 
+                            // Procedimiento Almacenado
                             new sql.Request().input('caso', sql.Int, 1).input('folio', sql.VarChar, folio).input('id_sub_maquina', sql.Int, id_actividad).input('rol', sql.VarChar, rol).execute('NotifyMantto', (err, result) => {
                                 console.log(result);
                                 res.status(200).json({ ok: true, message: 'Anomalia Registrada!' });
@@ -364,6 +377,82 @@ actividadesCtrl.cargarFoto = async(req, res) => {
     //     });
 
     // });
+
+}
+
+actividadesCtrl.coordinarAnomalia = async(req, res) => {
+
+    const { general } = req.body;
+    const { datos } = req.body;
+
+    if (general.role == 'Interceptor') {
+
+        await sql.connect(config, function(err) {
+
+            if (err) return res.status(401).send(err);
+
+            let sttmt = new sql.PreparedStatement();
+            sttmt.input('categoria', sql.VarChar).input('clasificacion', sql.VarChar).input('folio', sql.VarChar).input('maquina', sql.Int).input('sub_maquina', sql.Int).input('status', sql.VarChar).input('responsable', sql.VarChar)
+            sttmt.prepare('UPDATE d_mantto_sub_maquinas SET s_tipo_anomalia = @categoria, s_clasificacion_anomalia = @clasificacion, s_usr_now = @responsable WHERE s_folio = @folio AND s_maquina = @maquina AND s_id_sub_maquina = @sub_maquina AND s_status = @status', err => {
+
+                if (err) return res.status(401).send(err);
+
+                sttmt.execute({ categoria: datos.categoria, clasificacion: datos.clasificacion, responsable: datos.responsable, folio: general.folio, maquina: general.id_maquina, sub_maquina: general.id_sub_maquina, status: 'NOK' }, (err, result) => {
+
+                    if (err) return res.status(401).send(err);
+
+                    if (result.rowsAffected[0] > 0) {
+
+                        datos.anomalias.forEach(anomalia => {
+
+                            sql.connect(config).then(() => {
+
+                                return sql.query `INSERT INTO d_mantto_anomalias_checks (anm_folio, anm_maquina, anm_sub_maquina, anm_nombre) VALUES (${general.folio}, ${general.id_maquina}, ${general.id_sub_maquina}, ${anomalia.name})`
+
+                            }).then(result => {
+
+                                console.log(result);
+
+                            }).catch(err => {
+                                if (err) return res.status(401).json(err);
+                            });
+
+                        });
+
+                        sql.connect(config).then(() => {
+
+                            return sql.query `UPDATE progress_mantto SET approval = ${general.sgi}, status = 'Aprobado', fecha_movimiento = GETDATE() WHERE folio = ${general.folio} AND role = ${general.role} AND sub_actividad = ${general.id_sub_maquina} AND status = 'Pendiente'`
+
+                        }).then(result => {
+
+                            console.log(result);
+
+                            // Procedimiento Almacenado
+                            new sql.Request().input('caso', sql.Int, 1).input('folio', sql.VarChar, general.folio).input('id_sub_maquina', sql.Int, general.id_sub_maquina).input('rol', sql.VarChar, general.role).execute('NotifyMantto', (err, result) => {
+
+                                if (err) return res.status(401).send(err);
+
+                                console.log(result);
+                                res.status(200).json({ ok: true, message: 'La anomalia fue coordinada!' });
+
+                            });
+
+                        }).catch(err => {
+                            if (err) return res.status(401).json(err);
+                        });
+
+
+                    } else {
+                        return res.status(400).json({ ok: false, message: 'Error al coordinar la anomalia' });
+                    }
+
+                });
+
+            });
+
+        });
+
+    }
 
 }
 
