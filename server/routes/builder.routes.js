@@ -6,5 +6,6 @@ const mdAutenticacion = require("../middlewares/autenticacion");
 
 router.post('/checkbox', mdAutenticacion.verifyToken, builder.obtenerCheckbox);
 router.post('/responsables', mdAutenticacion.verifyToken, builder.obtenerResponsables);
+router.post('/acciones', mdAutenticacion.verifyToken, builder.obtenerAcciones);
 
 module.exports = router;

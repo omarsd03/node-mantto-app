@@ -140,35 +140,69 @@ actividadesCtrl.obtenerActividades = async(req, res) => {
 
 actividadesCtrl.obtenerActividad = async(req, res) => {
 
-    const { id_actividad, sgi, folio } = req.body;
+    const { id_actividad, sgi, folio, role } = req.body;
     const registros = [];
 
-    await sql.connect(config, function(err) {
+    if (role == 'Operador') {
 
-        if (err) return res.status(401).send(err);
-
-        let sttmt = new sql.PreparedStatement();
-
-        sttmt.input('id', sql.Int).input('sgi', sql.VarChar).input('folio', sql.VarChar).input('status', sql.VarChar);
-        sttmt.prepare(`SELECT sm.id_sub_maquina, sm.s_folio, m.m_maquina, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, a.a_categoria, u.Name AS a_resp_tarea FROM d_mantto_sub_maquinas sm LEFT JOIN c_mantto_actividades a ON sm.s_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON sm.s_maquina = m.id_maquina LEFT JOIN users u ON a.a_resp_tarea = u.SGI WHERE sm.s_id_sub_maquina = @id and a.a_resp_tarea = @sgi AND sm.s_folio = @folio AND sm.s_status = @status`, err => {
+        await sql.connect(config, function(err) {
 
             if (err) return res.status(401).send(err);
 
-            sttmt.execute({ id: id_actividad, sgi: sgi, folio: folio, status: 'Pendiente' }, (err, result) => {
+            let sttmt = new sql.PreparedStatement();
+
+            sttmt.input('id', sql.Int).input('sgi', sql.VarChar).input('folio', sql.VarChar).input('status', sql.VarChar);
+            sttmt.prepare(`SELECT sm.id_sub_maquina, sm.s_folio, m.m_maquina, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, a.a_categoria, u.Name AS a_resp_tarea FROM d_mantto_sub_maquinas sm LEFT JOIN c_mantto_actividades a ON sm.s_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON sm.s_maquina = m.id_maquina LEFT JOIN users u ON a.a_resp_tarea = u.SGI WHERE sm.s_id_sub_maquina = @id and a.a_resp_tarea = @sgi AND sm.s_folio = @folio AND sm.s_status = @status`, err => {
 
                 if (err) return res.status(401).send(err);
 
-                for (let i = 0; i < result.rowsAffected; i++) {
-                    registros.push(result.recordset[i]);
-                }
+                sttmt.execute({ id: id_actividad, sgi: sgi, folio: folio, status: 'Pendiente' }, (err, result) => {
 
-                return res.status(200).json({ ok: true, registros: registros });
+                    if (err) return res.status(401).send(err);
 
-            });
+                    for (let i = 0; i < result.rowsAffected; i++) {
+                        registros.push(result.recordset[i]);
+                    }
 
-        })
+                    return res.status(200).json({ ok: true, registros: registros });
 
-    });
+                });
+
+            })
+
+        });
+
+    } else {
+
+        await sql.connect(config, function(err) {
+
+            if (err) return res.status(401).send(err);
+
+            let sttmt = new sql.PreparedStatement();
+
+            sttmt.input('id', sql.Int).input('sgi', sql.VarChar).input('folio', sql.VarChar).input('status', sql.VarChar);
+            sttmt.prepare(`SELECT sm.id_sub_maquina, sm.s_folio, m.m_maquina, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, a.a_categoria, u.Name AS a_resp_tarea, sm.s_comentarios, sm.s_tipo_anomalia, sm.s_clasificacion_anomalia FROM d_mantto_sub_maquinas sm LEFT JOIN c_mantto_actividades a ON sm.s_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON sm.s_maquina = m.id_maquina LEFT JOIN users u ON a.a_resp_tarea = u.SGI WHERE sm.s_id_sub_maquina = @id and sm.s_usr_now = @sgi AND sm.s_folio = @folio AND sm.s_status = @status`, err => {
+
+                if (err) return res.status(401).send(err);
+
+                sttmt.execute({ id: id_actividad, sgi: sgi, folio: folio, status: 'NOK' }, (err, result) => {
+
+                    if (err) return res.status(401).send(err);
+
+                    for (let i = 0; i < result.rowsAffected; i++) {
+                        registros.push(result.recordset[i]);
+                    }
+
+                    return res.status(200).json({ ok: true, registros: registros });
+
+                });
+
+            })
+
+        });
+
+    }
+
 
 }
 
@@ -351,6 +385,7 @@ actividadesCtrl.cargarFoto = async(req, res) => {
 
     });
 
+    // TODO: Ajustar el metodo para guardar archivos
     // sql.connect(config, (err) => {
 
     //     if (err) return res.status(401).send(err);
@@ -453,6 +488,97 @@ actividadesCtrl.coordinarAnomalia = async(req, res) => {
         });
 
     }
+
+}
+
+actividadesCtrl.agregarAcciones = async(req, res) => {
+
+    const { general } = req.body;
+    const { acciones } = req.body;
+
+    await sql.connect(config, (err) => {
+
+        if (err) return res.status(401).send(err);
+
+        let sttmt = new sql.PreparedStatement();
+
+        sttmt.input('id_sub_maquina', sql.VarChar);
+        sttmt.prepare('SELECT s_actividad FROM c_mantto_sub_maquinas WHERE id_sub_maquina = @id_sub_maquina', err => {
+
+            if (err) return res.status(401).send(err);
+
+            sttmt.execute({ id_sub_maquina: general.id_sub_maquina }, (err, result) => {
+
+                if (err) return res.status(401).send(err);
+
+                let actividad = result.recordset[0];
+
+                acciones.features.forEach(accion => {
+
+                    console.log(accion);
+
+                    sql.connect(config).then(() => {
+
+                        return sql.query `INSERT INTO d_mantto_anomalias_comments (ac_folio, ac_actividad, ac_sub_maquina, ac_comment) VALUES (${general.folio}, ${actividad.s_actividad}, ${general.id_sub_maquina}, ${accion})`
+                            // return sql.query `INSERT INTO d_mantto_anomalias_checks (anm_folio, anm_maquina, anm_sub_maquina, anm_nombre) VALUES (${general.folio}, ${general.id_maquina}, ${general.id_sub_maquina}, ${anomalia.name})`
+
+                    }).then(result => {
+
+                        console.log(result);
+
+                    }).catch(err => {
+                        if (err) return res.status(401).json(err);
+                    });
+
+                });
+
+                return res.status(200).json({ ok: true, message: 'Acciones Registradas Correctamente' });
+
+            });
+
+        });
+
+    });
+
+    // await sql.connect(config, (err) => {
+
+    //     if (err) return res.status(401).send(err);
+
+    //     let sttmt = new sql.PreparedStatement();
+    //     sttmt.input('id_sub_actividad', sql.VarChar);
+    //     sttmt.prepare('SELECT s_actividad FROM c_mantto_sub_maquinas WHERE id_sub_maquina = @id_sub_maquina', err => {
+
+    //         if (err) return res.status(401).send(err);
+
+    //         sttmt.execute({ id_sub_maquina: general.id_sub_maquina }, (err, result) => {
+
+    //             if (err) return resp.status(401).send(err);
+
+    //             if (result.rowsAffected[0] > 0) {
+    //                 console.log(result);
+    //             }
+
+    //         })
+
+    //     });
+
+    // })
+
+    // datos.anomalias.forEach(anomalia => {
+
+    //     sql.connect(config).then(() => {
+
+    //         return sql.query `INSERT INTO d_mantto_anomalias_checks (anm_folio, anm_maquina, anm_sub_maquina, anm_nombre) VALUES (${general.folio}, ${general.id_maquina}, ${general.id_sub_maquina}, ${anomalia.name})`
+
+    //     }).then(result => {
+
+    //         console.log(result);
+
+    //     }).catch(err => {
+    //         if (err) return res.status(401).json(err);
+    //     });
+
+    // });
 
 }
 

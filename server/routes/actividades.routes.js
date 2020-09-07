@@ -14,5 +14,6 @@ router.post('/anomalias', mdAutenticacion.verifyToken, actividades.obtenerAnomal
 router.post('/upload', mdAutenticacion.verifyToken, actividades.cargarFoto);
 
 router.post('/coordinarAnomalia', mdAutenticacion.verifyToken, actividades.coordinarAnomalia);
+router.post('/agregarAcciones', mdAutenticacion.verifyToken, actividades.agregarAcciones)
 
 module.exports = router;
