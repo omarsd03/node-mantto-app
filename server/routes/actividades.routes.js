@@ -11,9 +11,11 @@ router.post('/realizar', mdAutenticacion.verifyToken, actividades.realizarActivi
 router.post('/realizadas', mdAutenticacion.verifyToken, actividades.obtenerRealizadas);
 router.post('/anomalias', mdAutenticacion.verifyToken, actividades.obtenerAnomalias);
 
+router.post('/historico', mdAutenticacion.verifyToken, actividades.historico);
+
 router.post('/upload', mdAutenticacion.verifyToken, actividades.cargarFoto);
 
 router.post('/coordinarAnomalia', mdAutenticacion.verifyToken, actividades.coordinarAnomalia);
-router.post('/agregarAcciones', mdAutenticacion.verifyToken, actividades.agregarAcciones)
+router.post('/agregarAcciones', mdAutenticacion.verifyToken, actividades.agregarAcciones);
 
 module.exports = router;

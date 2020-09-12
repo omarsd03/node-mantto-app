@@ -208,73 +208,130 @@ actividadesCtrl.obtenerActividad = async(req, res) => {
 
 actividadesCtrl.realizarActividad = async(req, res) => {
 
-    const { id_actividad, folio, opcion, descripcion, rol } = req.body;
+    const { id_actividad, folio, opcion, descripcion, rol, sgi } = req.body;
 
     console.log(id_actividad, folio, opcion, descripcion, rol);
 
-    await sql.connect(config, (err) => {
+    if (rol == 'Operador') {
 
-        if (err) return res.status(401).send(err);
+        await sql.connect(config, (err) => {
 
-        let sttmt = new sql.PreparedStatement();
+            if (err) return res.status(401).send(err);
 
-        if (opcion == 'OK') {
+            let sttmt = new sql.PreparedStatement();
 
-            sttmt.input('id', sql.Int).input('folio', sql.VarChar).input('opcion', sql.VarChar).input('status', sql.VarChar);
-            sttmt.prepare(`UPDATE d_mantto_sub_maquinas SET s_status = @opcion WHERE s_id_sub_maquina = @id AND s_folio = @folio AND s_status = @status`, err => {
+            if (opcion == 'OK') {
 
-                if (err) return res.status(401).send(err);
-
-                sttmt.execute({ id: id_actividad, folio: folio, opcion: opcion, status: 'Pendiente' }, (err, result) => {
+                sttmt.input('id', sql.Int).input('folio', sql.VarChar).input('opcion', sql.VarChar).input('status', sql.VarChar);
+                sttmt.prepare(`UPDATE d_mantto_sub_maquinas SET s_status = @opcion WHERE s_id_sub_maquina = @id AND s_folio = @folio AND s_status = @status`, err => {
 
                     if (err) return res.status(401).send(err);
 
-                    if (result.rowsAffected[0] > 0) {
-                        return res.status(200).json({ ok: true, message: 'Actividad Realizada Correctamente!' });
-                    } else {
-                        return res.status(400).json({ ok: false, message: 'Error al registrar actividad' });
-                    }
+                    sttmt.execute({ id: id_actividad, folio: folio, opcion: opcion, status: 'Pendiente' }, (err, result) => {
+
+                        if (err) return res.status(401).send(err);
+
+                        if (result.rowsAffected[0] > 0) {
+                            return res.status(200).json({ ok: true, message: 'Actividad Realizada Correctamente!' });
+                        } else {
+                            return res.status(400).json({ ok: false, message: 'Error al registrar actividad' });
+                        }
+
+                    });
 
                 });
 
-            });
+            } else if (opcion == 'NOK') {
 
-        } else if (opcion == 'NOK') {
-
-            sttmt.input('id', sql.Int).input('folio', sql.VarChar).input('opcion', sql.VarChar).input('status', sql.VarChar).input('descripcion', sql.VarChar);
-            sttmt.prepare(`UPDATE d_mantto_sub_maquinas SET s_status = @opcion, s_comentarios = @descripcion WHERE s_id_sub_maquina = @id AND s_folio = @folio AND s_status = @status`, err => {
-
-                if (err) return res.status(401).send(err);
-
-                sttmt.execute({ id: id_actividad, folio: folio, opcion: opcion, descripcion: descripcion, status: 'Pendiente' }, (err, result) => {
+                sttmt.input('id', sql.Int).input('folio', sql.VarChar).input('opcion', sql.VarChar).input('status', sql.VarChar).input('descripcion', sql.VarChar).input('anomalia', sql.Int)
+                sttmt.prepare(`UPDATE d_mantto_sub_maquinas SET s_status = @opcion, s_comentarios = @descripcion, s_anomalia = @anomalia WHERE s_id_sub_maquina = @id AND s_folio = @folio AND s_status = @status`, err => {
 
                     if (err) return res.status(401).send(err);
 
-                    if (result.rowsAffected[0] > 0) {
+                    sttmt.execute({ id: id_actividad, folio: folio, opcion: opcion, descripcion: descripcion, status: 'Pendiente', anomalia: 1 }, (err, result) => {
 
-                        sql.connect(config, err => {
+                        if (err) return res.status(401).send(err);
 
-                            if (err) return res.status(401).send(err);
+                        if (result.rowsAffected[0] > 0) {
 
-                            // Procedimiento Almacenado
-                            new sql.Request().input('caso', sql.Int, 1).input('folio', sql.VarChar, folio).input('id_sub_maquina', sql.Int, id_actividad).input('rol', sql.VarChar, rol).execute('NotifyMantto', (err, result) => {
-                                console.log(result);
-                                res.status(200).json({ ok: true, message: 'Anomalia Registrada!' });
+                            sql.connect(config, err => {
+
+                                if (err) return res.status(401).send(err);
+
+                                // Procedimiento Almacenado
+                                new sql.Request().input('caso', sql.Int, 1).input('folio', sql.VarChar, folio).input('id_sub_maquina', sql.Int, id_actividad).input('rol', sql.VarChar, rol).execute('NotifyMantto', (err, result) => {
+                                    console.log(result);
+                                    res.status(200).json({ ok: true, message: 'Anomalia Registrada!' });
+                                });
+
                             });
 
-                        });
+                        } else {
+                            res.status(400).json({ ok: false, message: 'Error al registrar anomalia' });
+                        }
 
-                    } else {
-                        res.status(400).json({ ok: false, message: 'Error al registrar anomalia' });
-                    }
+                    });
 
                 });
 
-            });
+            }
 
-        }
+        });
 
-    });
+    }
+
+    if (rol == 'Responsable') {
+
+        sql.connect(config, function(err) {
+
+            if (err) return res.status(401).send(err);
+
+            let sttmt = new sql.PreparedStatement();
+
+            if (opcion == 'OK') {
+
+                sttmt.input('id', sql.Int).input('folio', sql.VarChar).input('opcion', sql.VarChar).input('status', sql.VarChar);
+                sttmt.prepare(`UPDATE d_mantto_sub_maquinas SET s_status = @opcion WHERE s_folio = @folio AND id_sub_maquina = @id AND s_status = @status`, err => {
+
+                    if (err) return res.status(401).send(err);
+
+                    sttmt.execute({ opcion: 'OK', folio: folio, id: id_actividad, status: 'NOK' }, (err, result) => {
+
+                        if (err) return res.status(401).send(err);
+
+                        if (result.rowsAffected[0] > 0) {
+
+                            // return res.status(200).json({ ok: true, message: 'La anomalia ha sido corregida!' });
+
+                            sql.connect(config).then(() => {
+
+                                return sql.query `UPDATE progress_mantto SET status = 'Liberado', fecha_movimiento = GETDATE() WHERE folio = ${folio} AND sub_actividad = ${id_actividad} AND role = 'Responsable' AND approval = ${sgi}`
+
+                            }).then(result => {
+
+                                console.log(result);
+
+                                return res.status(200).json({ ok: true, message: 'La anomalia ha sido corregida!' });
+
+                            }).catch(err => {
+                                if (err) return res.status(401).json(err);
+                            });
+
+                        } else {
+                            return res.status(400).json({ ok: false, message: 'Error al corregir la anomalia' });
+                        }
+
+                    });
+
+                });
+
+            } else {
+                return res.status(400).json({ ok: false, message: `Opcion incorrecta, se recibio: ${opcion}` });
+            }
+
+        });
+
+    }
 
 }
 
@@ -579,6 +636,63 @@ actividadesCtrl.agregarAcciones = async(req, res) => {
     //     });
 
     // });
+
+}
+
+actividadesCtrl.historico = (req, res) => {
+
+    const { sgi, role } = req.body;
+
+    if (role == 'Operador') {
+
+        const pool1 = new sql.ConnectionPool(config);
+        const pool1Connect = pool1.connect();
+
+        pool1.on('error', err => {
+            return res.status(401).send(err);
+        });
+
+        async function messageHandler() {
+
+            const registros = [];
+            await pool1Connect;
+
+            try {
+
+                const request = pool1.request();
+
+                const result1 = await request.query(`SELECT COUNT(*) AS OK FROM d_mantto_sub_maquinas WHERE s_operador = '${sgi}' AND s_status = 'OK'`);
+                console.log(result1);
+                registros.push(result1.recordset[0]);
+
+                const result2 = await request.query(`SELECT COUNT(*) AS NOK FROM d_mantto_sub_maquinas WHERE s_operador = '${sgi}' AND s_status = 'NOK'`);
+                console.log(result2);
+                registros.push(result2.recordset[0]);
+
+                const result3 = await request.query(`SELECT COUNT(*) AS Pendiente FROM d_mantto_sub_maquinas WHERE s_operador = '${sgi}' AND s_status = 'Pendiente'`);
+                console.log(result3);
+                registros.push(result3.recordset[0]);
+
+                console.log(registros);
+
+                return registros;
+
+            } catch (error) {
+                console.log('SQL error', error);
+            }
+        }
+
+        const registros = messageHandler();
+
+        registros.then(registro => {
+            // console.log(registro);
+            return res.status(200).json({ ok: true, registros: registro });
+        });
+
+        // return res.status(200).json({ ok: true, registros: registros });
+
+    }
+
 
 }
 
