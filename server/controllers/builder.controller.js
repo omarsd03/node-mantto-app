@@ -5,21 +5,23 @@ const builderCtrl = {};
 
 builderCtrl.obtenerCheckbox = async(req, res) => {
 
-    const { sgi, role, categoria } = req.body;
+    const { sgi, role } = req.body;
 
     let registros = [];
 
     await new sql.ConnectionPool(config).connect().then(pool => {
 
-        if (categoria == 'Seguridad') {
-            return pool.query `SELECT id_catalogo AS id, c_nombre AS value FROM c_mantto_general WHERE c_categoria LIKE '%Seguridad%' AND c_tipo = 'Anomalia'`
-        } else if (categoria == 'Mantenimiento') {
-            return pool.query `SELECT id_catalogo AS id, c_nombre AS value FROM c_mantto_general WHERE c_categoria LIKE '%Mantenimiento%' AND c_tipo = 'Anomalia'`
-        } else if (categoria == 'Produccion') {
-            return pool.query `SELECT id_catalogo AS id, c_nombre AS value FROM c_mantto_general WHERE c_categoria LIKE '%Produccion%' AND c_tipo = 'Anomalia'`
-        } else {
-            return res.status(400).json({ ok: false, mensaje: 'Categoria invalida' });
-        }
+        return pool.query `SELECT id_catalogo AS id, c_nombre AS value FROM c_mantto_general WHERE c_categoria LIKE '%Mantenimiento%' AND c_tipo = 'Anomalia'`
+
+        // if (categoria == 'Seguridad') {
+        //     return pool.query `SELECT id_catalogo AS id, c_nombre AS value FROM c_mantto_general WHERE c_categoria LIKE '%Seguridad%' AND c_tipo = 'Anomalia'`
+        // } else if (categoria == 'Mantenimiento') {
+        //     return pool.query `SELECT id_catalogo AS id, c_nombre AS value FROM c_mantto_general WHERE c_categoria LIKE '%Mantenimiento%' AND c_tipo = 'Anomalia'`
+        // } else if (categoria == 'Produccion') {
+        //     return pool.query `SELECT id_catalogo AS id, c_nombre AS value FROM c_mantto_general WHERE c_categoria LIKE '%Produccion%' AND c_tipo = 'Anomalia'`
+        // } else {
+        //     return res.status(400).json({ ok: false, mensaje: 'Categoria invalida' });
+        // }
 
     }).then(result => {
 

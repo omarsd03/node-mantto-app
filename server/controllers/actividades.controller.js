@@ -116,7 +116,7 @@ actividadesCtrl.obtenerActividades = async(req, res) => {
 
         sttmt.input('folio', sql.VarChar);
         sttmt.input('status', sql.VarChar);
-        sttmt.prepare(`SELECT dsm.s_folio AS folio, dsm.s_maquina AS maquina, dsm.s_actividad AS actividad, csm.s_nombre AS nombre, dsm.s_id_sub_maquina AS id_sub_maquina FROM d_mantto_sub_maquinas dsm LEFT JOIN c_mantto_sub_maquinas csm ON dsm.s_id_sub_maquina = csm.id_sub_maquina WHERE s_folio = @folio AND s_status = @status`, err => {
+        sttmt.prepare(`SELECT dsm.s_folio AS folio, dsm.s_maquina AS maquina, dsm.s_actividad AS actividad, csm.s_nombre AS nombre, dsm.s_id_sub_maquina AS id_sub_maquina FROM d_mantto_sub_maquinas dsm LEFT JOIN c_mantto_sub_maquinas csm ON dsm.s_id_sub_maquina = csm.id_sub_maquina WHERE dsm.s_folio = @folio AND dsm.s_status = @status`, err => {
 
             if (err) return res.status(401).send(err);
 
@@ -241,44 +241,79 @@ actividadesCtrl.realizarActividad = async(req, res) => {
 
                 });
 
-            } else if (opcion == 'NOK') {
-
-                sttmt.input('id', sql.Int).input('folio', sql.VarChar).input('opcion', sql.VarChar).input('status', sql.VarChar).input('descripcion', sql.VarChar).input('anomalia', sql.Int)
-                sttmt.prepare(`UPDATE d_mantto_sub_maquinas SET s_status = @opcion, s_comentarios = @descripcion, s_anomalia = @anomalia WHERE s_id_sub_maquina = @id AND s_folio = @folio AND s_status = @status`, err => {
-
-                    if (err) return res.status(401).send(err);
-
-                    sttmt.execute({ id: id_actividad, folio: folio, opcion: opcion, descripcion: descripcion, status: 'Pendiente', anomalia: 1 }, (err, result) => {
-
-                        if (err) return res.status(401).send(err);
-
-                        if (result.rowsAffected[0] > 0) {
-
-                            sql.connect(config, err => {
-
-                                if (err) return res.status(401).send(err);
-
-                                // Procedimiento Almacenado
-                                new sql.Request().input('caso', sql.Int, 1).input('folio', sql.VarChar, folio).input('id_sub_maquina', sql.Int, id_actividad).input('rol', sql.VarChar, rol).execute('NotifyMantto', (err, result) => {
-                                    console.log(result);
-                                    res.status(200).json({ ok: true, message: 'Anomalia Registrada!' });
-                                });
-
-                            });
-
-                        } else {
-                            res.status(400).json({ ok: false, message: 'Error al registrar anomalia' });
-                        }
-
-                    });
-
-                });
-
             }
 
         });
 
     }
+
+    // if (rol == 'Operador') {
+
+    //     await sql.connect(config, (err) => {
+
+    //         if (err) return res.status(401).send(err);
+
+    //         let sttmt = new sql.PreparedStatement();
+
+    //         if (opcion == 'OK') {
+
+    //             sttmt.input('id', sql.Int).input('folio', sql.VarChar).input('opcion', sql.VarChar).input('status', sql.VarChar);
+    //             sttmt.prepare(`UPDATE d_mantto_sub_maquinas SET s_status = @opcion WHERE s_id_sub_maquina = @id AND s_folio = @folio AND s_status = @status`, err => {
+
+    //                 if (err) return res.status(401).send(err);
+
+    //                 sttmt.execute({ id: id_actividad, folio: folio, opcion: opcion, status: 'Pendiente' }, (err, result) => {
+
+    //                     if (err) return res.status(401).send(err);
+
+    //                     if (result.rowsAffected[0] > 0) {
+    //                         return res.status(200).json({ ok: true, message: 'Actividad Realizada Correctamente!' });
+    //                     } else {
+    //                         return res.status(400).json({ ok: false, message: 'Error al registrar actividad' });
+    //                     }
+
+    //                 });
+
+    //             });
+
+    //         } else if (opcion == 'NOK') {
+
+    //             sttmt.input('id', sql.Int).input('folio', sql.VarChar).input('opcion', sql.VarChar).input('status', sql.VarChar).input('descripcion', sql.VarChar).input('anomalia', sql.Int)
+    //             sttmt.prepare(`UPDATE d_mantto_sub_maquinas SET s_status = @opcion, s_comentarios = @descripcion, s_anomalia = @anomalia WHERE s_id_sub_maquina = @id AND s_folio = @folio AND s_status = @status`, err => {
+
+    //                 if (err) return res.status(401).send(err);
+
+    //                 sttmt.execute({ id: id_actividad, folio: folio, opcion: opcion, descripcion: descripcion, status: 'Pendiente', anomalia: 1 }, (err, result) => {
+
+    //                     if (err) return res.status(401).send(err);
+
+    //                     if (result.rowsAffected[0] > 0) {
+
+    //                         sql.connect(config, err => {
+
+    //                             if (err) return res.status(401).send(err);
+
+    //                             // Procedimiento Almacenado
+    //                             new sql.Request().input('caso', sql.Int, 1).input('folio', sql.VarChar, folio).input('id_sub_maquina', sql.Int, id_actividad).input('rol', sql.VarChar, rol).execute('NotifyMantto', (err, result) => {
+    //                                 console.log(result);
+    //                                 res.status(200).json({ ok: true, message: 'Anomalia Registrada!' });
+    //                             });
+
+    //                         });
+
+    //                     } else {
+    //                         res.status(400).json({ ok: false, message: 'Error al registrar anomalia' });
+    //                     }
+
+    //                 });
+
+    //             });
+
+    //         }
+
+    //     });
+
+    // }
 
     if (rol == 'Responsable') {
 
@@ -332,6 +367,96 @@ actividadesCtrl.realizarActividad = async(req, res) => {
         });
 
     }
+
+}
+
+actividadesCtrl.postearAnomalia = async(req, res) => {
+
+    const { sgi, role, folio, id_sub_maquina, datos } = req.body;
+
+    // return res.json('Entro :D');
+
+    const pool1 = new sql.ConnectionPool(config);
+    const pool1Connect = pool1.connect();
+
+    pool1.on('error', err => {
+        return res.status(401).json(err);
+    });
+
+    const pool2 = new sql.ConnectionPool(config)
+    const pool2Connect = pool2.connect();
+
+    pool2.on('error', err => {
+        return res.status(401).json(err);
+    });
+
+    async function registrarAnomalia() {
+
+        // const registros = [];
+        await pool1Connect;
+
+        try {
+
+            const request = pool1.request();
+
+            if (datos.anomalia === 'Otro') {
+
+                const result1 = await request.query(`UPDATE d_mantto_sub_maquinas SET s_status = 'NOK', s_comentarios = '${datos.descripcion}', s_tipo_anomalia = '${datos.anomalia}, ${datos.anomaliaEspecifica}', s_clasificacion_anomalia = '${datos.clasificacion}', s_anomalia = 1 WHERE s_id_sub_maquina = ${id_sub_maquina} AND s_folio = '${folio}' AND s_status = 'Pendiente'`);
+                // console.log(result1);
+
+            } else {
+
+                const result1 = await request.query(`UPDATE d_mantto_sub_maquinas SET s_status = 'NOK', s_comentarios = '${datos.descripcion}', s_tipo_anomalia = '${datos.anomalia}', s_clasificacion_anomalia = '${datos.clasificacion}', s_anomalia = 1 WHERE s_id_sub_maquina = ${id_sub_maquina} AND s_folio = '${folio}' AND s_status = 'Pendiente'`);
+                // console.log(result1);
+
+            }
+
+            datos.categorias.forEach(async anomalia => {
+
+                const result2 = await request.query(`INSERT INTO d_mantto_anm_categorias (anm_folio, anm_sub_maquina, anm_categoria) VALUES ('${folio}', ${id_sub_maquina}, '${anomalia}')`);
+                // console.log(result2);
+
+            });
+
+            return true;
+
+        } catch (error) {
+            console.log('SQL error', error);
+        }
+    }
+
+    function administrarFlujo() {
+
+        return pool2Connect.then((pool) => {
+            pool.request() // or: new sql.Request(pool2)
+                .input('caso', sql.Int, 1)
+                .input('folio', sql.VarChar, folio)
+                .input('id_sub_maquina', sql.Int, id_sub_maquina)
+                .input('rol', sql.VarChar, role)
+                .execute('NotifyMantto', (err, result) => {
+                    // ... error checks
+                    if (err) {
+                        console.log(err);
+                        return false;
+                    }
+                    console.log(result);
+                    return res.status(200).json({ ok: true, message: 'Anomalia Registrada Correctamente', folio: folio });
+                })
+        }).catch(err => {
+            console.log(err);
+            return false;
+        });
+
+    }
+
+    const anomalia = registrarAnomalia();
+
+    if (anomalia) {
+        administrarFlujo();
+    } else {
+        return res.status(400).json({ mensaje: 'Error en el servidor' });
+    }
+
 
 }
 
@@ -407,7 +532,7 @@ actividadesCtrl.obtenerAnomalias = async(req, res) => {
 
 actividadesCtrl.cargarFoto = async(req, res) => {
 
-    const { tipo, folio, sgi } = req.body;
+    const { tipo, folio, sgi, id_sub_maquina } = req.body;
 
     if (!req.files || Object.keys(req.files).length === 0) {
         return res.status(400).json({ msg: 'No existen archivos cargados' });
@@ -429,7 +554,8 @@ actividadesCtrl.cargarFoto = async(req, res) => {
         return res.status(400).json({ ok: false, msg: 'La extension no esta permitida' });
     }
 
-    const nombreArchivo = `${ uuidv4() }.${ extensionArchivo }`;
+    // const nombreArchivo = `${ uuidv4() }.${ extensionArchivo }`;
+    const nombreArchivo = `${ folio }-${ id_sub_maquina }.${ extensionArchivo }`;
     const path = `server/uploads/${tipo}/${nombreArchivo}`;
 
     file.mv(path, (err) => {
