@@ -9,5 +9,6 @@ router.post('/responsables', mdAutenticacion.verifyToken, builder.obtenerRespons
 router.post('/acciones', mdAutenticacion.verifyToken, builder.obtenerAcciones);
 
 router.post('/detalleOk', mdAutenticacion.verifyToken, builder.detalleOk);
+router.post('/detalleNok', mdAutenticacion.verifyToken, builder.detalleNok);
 
 module.exports = router;
