@@ -99,4 +99,51 @@ builderCtrl.obtenerAcciones = async(req, res) => {
 
 }
 
+builderCtrl.detalleOk = async(req, res) => {
+
+    const { sgi, role, folio, id_sub_maquina } = req.body;
+
+    const pool1 = new sql.ConnectionPool(config);
+    const pool1Connect = pool1.connect();
+
+    pool1.on('error', err => {
+        return res.status(401).send(err);
+    });
+
+    async function detalleOk() {
+
+        // const registros = [];
+        await pool1Connect;
+
+        try {
+
+            const request = pool1.request();
+
+            const result1 = await request.query(`SELECT a.a_zona_maquina, m.m_maquina, a.a_prioridad, a.a_tarea FROM d_mantto_sub_maquinas sm INNER JOIN c_mantto_actividades a ON sm.s_actividad = a.id_actividad INNER JOIN c_mantto_maquinas m ON sm.s_maquina = m.id_maquina WHERE sm.s_folio = '${folio}' AND sm.s_id_sub_maquina = ${id_sub_maquina}`);
+            console.log(result1);
+            const datos = result1.recordset;
+            // registros.push(result1.recordset[0]);
+
+            const result2 = await request.query(`SELECT path FROM d_mantto_evidencias e INNER JOIN master_files f ON e.e_archivo = f.id_file WHERE folio = '${folio}' AND e_sub_maquina = ${id_sub_maquina}`);
+            const images = result2.recordset;
+
+            const registros = { datos, images };
+
+            return registros;
+
+        } catch (error) {
+            console.log('SQL error', error);
+        }
+    }
+
+    const registros = await detalleOk();
+    return res.status(200).json({ ok: true, registros: registros });
+
+    // registros.then(registro => {
+    //     // console.log(registro);
+    //     return res.status(200).json({ ok: true, registros: registro });
+    // });
+
+}
+
 module.exports = builderCtrl;

@@ -1,6 +1,7 @@
 const sql = require("mssql");
 const config = require('../database');
 const { v4: uuidv4 } = require('uuid');
+const path = require('path');
 
 const actividadesCtrl = {};
 
@@ -555,46 +556,66 @@ actividadesCtrl.cargarFoto = async(req, res) => {
     }
 
     // const nombreArchivo = `${ uuidv4() }.${ extensionArchivo }`;
-    const nombreArchivo = `${ folio }-${ id_sub_maquina }.${ extensionArchivo }`;
+    const nombreArchivo = `${ folio }-${ id_sub_maquina }-${ uuidv4() }.${ extensionArchivo }`;
     const path = `server/uploads/${tipo}/${nombreArchivo}`;
+    const pathMasterFiles = `uploads/${tipo}/${nombreArchivo}`;
 
     file.mv(path, (err) => {
 
         if (err) {
-            return res.status(500).send(err);
+            return res.status(500).json(err);
         }
 
-        return res.json({ ok: true, msg: 'Archivo cargado' });
+        // return res.json({ ok: true, msg: 'Archivo cargado' });
+
+        // TODO: Ajustar el metodo para guardar archivos
+        // async/await style:
+        const pool1 = new sql.ConnectionPool(config);
+        const pool1Connect = pool1.connect();
+
+        pool1.on('error', err => {
+            return res.status(400).json(err);
+        })
+
+        async function administrarArchivos() {
+
+            await pool1Connect; // ensures that the pool has been created
+            try {
+
+                const request = pool1.request(); // or: new sql.Request(pool1)
+                const result = await request.query(`INSERT INTO master_files (folio, path, original_name, type, sgi_enter, original_path, module) VALUES ('${folio}', '${pathMasterFiles}', '${nombreOriginal}', '${tipoMasterFiles}', '${sgi}', '${pathMasterFiles}', ${modulo}) SELECT SCOPE_IDENTITY() as id`)
+                const id = result.recordset[0].id;
+
+                const request2 = pool1.request(); // or: new sql.Request(pool1)
+                const result2 = await request2.query(`INSERT INTO d_mantto_evidencias (e_folio, e_sub_maquina, e_archivo, e_tipo) VALUES ('${folio}', '${ id_sub_maquina }', ${id}, '${tipo}')`)
+
+                return res.json({ ok: true, msg: 'Archivo cargado' });
+
+            } catch (err) {
+                console.error('SQL error', err);
+            }
+
+        }
+
+        administrarArchivos();
+
+        // Esto funciona y devuelve el ultimo id insertado
+        // sql.connect(config).then(() => {
+
+        //     return sql.query `INSERT INTO master_files (folio, path, original_name, type, sgi_enter, original_path, module) VALUES (${folio}, ${path}, ${nombreOriginal}, ${tipoMasterFiles}, ${sgi}, ${path}, ${modulo}) SELECT SCOPE_IDENTITY() as id`
+
+        // }).then(result => {
+
+        //     console.log(result);
+
+        //     return res.status(200).json({ ok: true, message: 'Archivo cargado!' });
+
+        // }).catch(err => {
+        //     if (err) return res.status(401).json(err);
+        // });
 
     });
 
-    // TODO: Ajustar el metodo para guardar archivos
-    // sql.connect(config, (err) => {
-
-    //     if (err) return res.status(401).send(err);
-
-    //     let sttmt = new sql.PreparedStatement();
-
-    //     sttmt.input('folio', sql.VarChar).input('path', sql.VarChar).input('name', sql.VarChar).input('type', sql.VarChar).input('sgi', sql.VarChar).input('original_path', sql.VarChar).input('module', sql.Int)
-    //     sttmt.prepare(`INSERT INTO master_files (folio, path, original_name, type, sgi_enter, original_path, module) VALUES (@folio, @path, @name, @type, @sgi, @original_path, @modulo)`, err => {
-
-    //         if (err) return res.status(401).send(err);
-
-    //         sttmt.execute({ folio: folio, path: path, name: nombreOriginal, type: tipoMasterFiles, sgi: sgi, original_path: path, modulo: modulo }, (err, result) => {
-
-    //             if (err) return res.status(401).send(err);
-
-    //             if (result.rowsAffected[0] > 0) {
-    //                 return res.status(200).json({ ok: true, message: 'Archivo cargado!' });
-    //             } else {
-    //                 return res.status(400).json({ ok: false, message: 'Error al cargar archivo' });
-    //             }
-
-    //         })
-
-    //     });
-
-    // });
 
 }
 
@@ -679,6 +700,8 @@ actividadesCtrl.agregarAcciones = async(req, res) => {
     const { general } = req.body;
     const { acciones } = req.body;
 
+    console.log(general);
+
     await sql.connect(config, (err) => {
 
         if (err) return res.status(401).send(err);
@@ -702,7 +725,7 @@ actividadesCtrl.agregarAcciones = async(req, res) => {
 
                     sql.connect(config).then(() => {
 
-                        return sql.query `INSERT INTO d_mantto_anomalias_comments (ac_folio, ac_actividad, ac_sub_maquina, ac_comment) VALUES (${general.folio}, ${actividad.s_actividad}, ${general.id_sub_maquina}, ${accion})`
+                        return sql.query `INSERT INTO d_mantto_anomalias_comments (ac_folio, ac_actividad, ac_sub_maquina, ac_comment, ac_responsable) VALUES (${general.folio}, ${actividad.s_actividad}, ${general.id_sub_maquina}, ${accion}, ${general.sgi})`
                             // return sql.query `INSERT INTO d_mantto_anomalias_checks (anm_folio, anm_maquina, anm_sub_maquina, anm_nombre) VALUES (${general.folio}, ${general.id_maquina}, ${general.id_sub_maquina}, ${anomalia.name})`
 
                     }).then(result => {
@@ -819,6 +842,84 @@ actividadesCtrl.historico = (req, res) => {
 
     }
 
+}
+
+actividadesCtrl.verAcciones = async(req, res) => {
+
+    const { sgi, role } = req.body;
+    const registros = [];
+
+    if (role == 'Responsable') {
+
+        await sql.connect(config, (err) => {
+
+            if (err) return res.status(401).send(err);
+
+            let sttmt = new sql.PreparedStatement();
+
+            sttmt.input('sgi', sql.VarChar);
+            sttmt.prepare('SELECT ac.ac_folio AS folio, a.a_prioridad AS prioridad, sm.s_nombre AS sub_maquina, ac.ac_comment AS accion FROM d_mantto_anomalias_comments ac INNER JOIN c_mantto_actividades a ON ac.ac_actividad = a.id_actividad INNER JOIN c_mantto_sub_maquinas sm ON ac.ac_sub_maquina = sm.id_sub_maquina WHERE ac.ac_responsable = @sgi', err => {
+
+                if (err) return res.status(401).send(err);
+
+                sttmt.execute({ sgi: sgi }, (err, result) => {
+
+                    if (err) return res.status(401).send(err);
+
+                    for (let i = 0; i < result.rowsAffected; i++) {
+                        const registro = result.recordset[i];
+                        registros.push(registro);
+                    }
+
+                    return res.status(200).json({ ok: true, registros: registros });
+
+                });
+
+            });
+
+        });
+
+    } else {
+
+        // SELECT ac.ac_folio AS folio, a.a_prioridad AS prioridad, sm.s_nombre AS sub_maquina, ac.ac_comment AS accion FROM d_mantto_anomalias_comments ac INNER JOIN d_mantto_general g ON ac.ac_folio = g.g_folio INNER JOIN c_mantto_actividades a ON ac.ac_actividad = a.id_actividad INNER JOIN c_mantto_sub_maquinas sm ON ac.ac_sub_maquina = sm.id_sub_maquina WHERE g.g_operador = 'J0580041'
+        await sql.connect(config, (err) => {
+
+            if (err) return res.status(401).send(err);
+
+            let sttmt = new sql.PreparedStatement();
+
+            sttmt.input('sgi', sql.VarChar);
+            sttmt.prepare('SELECT ac.ac_folio AS folio, a.a_prioridad AS prioridad, sm.s_nombre AS sub_maquina, ac.ac_comment AS accion FROM d_mantto_anomalias_comments ac INNER JOIN d_mantto_general g ON ac.ac_folio = g.g_folio INNER JOIN c_mantto_actividades a ON ac.ac_actividad = a.id_actividad INNER JOIN c_mantto_sub_maquinas sm ON ac.ac_sub_maquina = sm.id_sub_maquina WHERE g.g_operador = @sgi', err => {
+
+                if (err) return res.status(401).send(err);
+
+                sttmt.execute({ sgi: sgi }, (err, result) => {
+
+                    if (err) return res.status(401).send(err);
+
+                    for (let i = 0; i < result.rowsAffected; i++) {
+                        const registro = result.recordset[i];
+                        registros.push(registro);
+                    }
+
+                    return res.status(200).json({ ok: true, registros: registros });
+
+                });
+
+            });
+
+        });
+
+    }
+
+}
+
+actividadesCtrl.obtenerImagen = (req, res) => {
+
+    const { tipo, imagen } = req.params;
+
+    const pathImg = path.join(__dirname, `../uploads/${tipo}/${imagen}`);
+    res.sendFile(pathImg);
 
 }
 

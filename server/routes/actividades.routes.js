@@ -14,10 +14,13 @@ router.post('/anomalias', mdAutenticacion.verifyToken, actividades.obtenerAnomal
 router.post('/historico', mdAutenticacion.verifyToken, actividades.historico);
 
 router.post('/upload', mdAutenticacion.verifyToken, actividades.cargarFoto);
+router.get('/uploads/:tipo/:imagen', actividades.obtenerImagen);
 
 router.post('/coordinarAnomalia', mdAutenticacion.verifyToken, actividades.coordinarAnomalia);
 router.post('/agregarAcciones', mdAutenticacion.verifyToken, actividades.agregarAcciones);
 
 router.post('/postearAnomalia', mdAutenticacion.verifyToken, actividades.postearAnomalia);
+
+router.post('/verAcciones', mdAutenticacion.verifyToken, actividades.verAcciones);
 
 module.exports = router;

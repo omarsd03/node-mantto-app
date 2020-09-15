@@ -16,18 +16,13 @@ const getMenuFrontend = (role = 'Operador') => {
                 titulo: 'Historico de Actividades',
                 icono: 'faExclamationTriangle',
                 ruta: '/historico'
+            },
+            {
+                titulo: 'Acciones Planificadas',
+                icono: 'faHistory',
+                ruta: '/acciones'
             }
         ];
-
-        return menu;
-
-    } else if (role == 'Interceptor') {
-
-        const menu = [{
-            titulo: 'Anomalias por Coordinar',
-            icono: 'wrench',
-            ruta: '/'
-        }];
 
         return menu;
 
@@ -52,6 +47,11 @@ const getMenuFrontend = (role = 'Operador') => {
                 titulo: 'Historico de Actividades',
                 icono: 'faHistory',
                 ruta: '/historico'
+            },
+            {
+                titulo: 'Acciones Planificadas',
+                icono: 'faHistory',
+                ruta: '/acciones'
             }
         ];
 
