@@ -175,32 +175,73 @@ actividadesCtrl.obtenerActividad = async(req, res) => {
 
     } else {
 
-        await sql.connect(config, function(err) {
+        const pool1 = new sql.ConnectionPool(config);
+        const pool1Connect = pool1.connect();
 
-            if (err) return res.status(401).send(err);
-
-            let sttmt = new sql.PreparedStatement();
-
-            sttmt.input('id', sql.Int).input('sgi', sql.VarChar).input('folio', sql.VarChar).input('status', sql.VarChar);
-            sttmt.prepare(`SELECT sm.id_sub_maquina, sm.s_folio, m.m_maquina, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, a.a_categoria, u.Name AS a_resp_tarea, sm.s_comentarios, sm.s_tipo_anomalia, sm.s_clasificacion_anomalia FROM d_mantto_sub_maquinas sm LEFT JOIN c_mantto_actividades a ON sm.s_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON sm.s_maquina = m.id_maquina LEFT JOIN users u ON a.a_resp_tarea = u.SGI WHERE sm.s_id_sub_maquina = @id and sm.s_usr_now = @sgi AND sm.s_folio = @folio AND sm.s_status = @status`, err => {
-
-                if (err) return res.status(401).send(err);
-
-                sttmt.execute({ id: id_actividad, sgi: sgi, folio: folio, status: 'NOK' }, (err, result) => {
-
-                    if (err) return res.status(401).send(err);
-
-                    for (let i = 0; i < result.rowsAffected; i++) {
-                        registros.push(result.recordset[i]);
-                    }
-
-                    return res.status(200).json({ ok: true, registros: registros });
-
-                });
-
-            })
-
+        pool1.on('error', err => {
+            return res.status(401).send(err);
         });
+
+        async function detalleOk() {
+
+            // const registros = [];
+            await pool1Connect;
+
+            try {
+
+                const request = pool1.request();
+
+                const result1 = await request.query(`SELECT sm.id_sub_maquina, sm.s_folio, m.m_maquina, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, a.a_categoria, u.Name AS a_resp_tarea, sm.s_comentarios, sm.s_tipo_anomalia, sm.s_clasificacion_anomalia FROM d_mantto_sub_maquinas sm LEFT JOIN c_mantto_actividades a ON sm.s_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON sm.s_maquina = m.id_maquina LEFT JOIN users u ON a.a_resp_tarea = u.SGI WHERE sm.s_id_sub_maquina = ${id_actividad} and sm.s_usr_now = '${sgi}' AND sm.s_folio = '${folio}' AND sm.s_status = 'NOK'`);
+                console.log(result1);
+                const registros = result1.recordset;
+                // registros.push(result1.recordset[0]);
+
+                const result2 = await request.query(`SELECT anm_categoria AS categoria_anomalia FROM d_mantto_anm_categorias WHERE anm_folio = '${folio}' AND anm_sub_maquina = ${id_actividad}`);
+                const categorias = result2.recordset;
+
+                const result3 = await request.query(`SELECT path FROM d_mantto_evidencias e INNER JOIN master_files f ON e.e_archivo = f.id_file WHERE folio = '${folio}' AND e_sub_maquina = ${id_actividad}`);
+                const images = result3.recordset;
+
+                const data = { registros, categorias, images };
+
+                return data;
+
+            } catch (error) {
+                console.log('SQL error', error);
+            }
+
+        }
+
+        const registros = await detalleOk();
+        return res.status(200).json({ ok: true, registros: registros.registros, categorias: registros.categorias, images: registros.images });
+
+
+        // await sql.connect(config, function(err) {
+
+        //     if (err) return res.status(401).send(err);
+
+        //     let sttmt = new sql.PreparedStatement();
+
+        //     sttmt.input('id', sql.Int).input('sgi', sql.VarChar).input('folio', sql.VarChar).input('status', sql.VarChar);
+        //     sttmt.prepare(`SELECT sm.id_sub_maquina, sm.s_folio, m.m_maquina, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, a.a_categoria, u.Name AS a_resp_tarea, sm.s_comentarios, sm.s_tipo_anomalia, sm.s_clasificacion_anomalia FROM d_mantto_sub_maquinas sm LEFT JOIN c_mantto_actividades a ON sm.s_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON sm.s_maquina = m.id_maquina LEFT JOIN users u ON a.a_resp_tarea = u.SGI WHERE sm.s_id_sub_maquina = @id and sm.s_usr_now = @sgi AND sm.s_folio = @folio AND sm.s_status = @status`, err => {
+
+        //         if (err) return res.status(401).send(err);
+
+        //         sttmt.execute({ id: id_actividad, sgi: sgi, folio: folio, status: 'NOK' }, (err, result) => {
+
+        //             if (err) return res.status(401).send(err);
+
+        //             for (let i = 0; i < result.rowsAffected; i++) {
+        //                 registros.push(result.recordset[i]);
+        //             }
+
+        //             return res.status(200).json({ ok: true, registros: registros });
+
+        //         });
+
+        //     })
+
+        // });
 
     }
 
