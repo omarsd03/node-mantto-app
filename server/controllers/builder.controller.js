@@ -11,7 +11,7 @@ builderCtrl.obtenerCheckbox = async(req, res) => {
 
     await new sql.ConnectionPool(config).connect().then(pool => {
 
-        return pool.query `SELECT id_catalogo AS id, c_nombre AS value FROM c_mantto_general WHERE c_categoria LIKE '%Mantenimiento%' AND c_tipo = 'Anomalia'`
+        return pool.query `SELECT id_catalogo AS id, c_nombre AS value FROM c_mantto_general WHERE c_categoria = 'Anomalia'`
 
         // if (categoria == 'Seguridad') {
         //     return pool.query `SELECT id_catalogo AS id, c_nombre AS value FROM c_mantto_general WHERE c_categoria LIKE '%Seguridad%' AND c_tipo = 'Anomalia'`
