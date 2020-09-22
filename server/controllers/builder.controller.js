@@ -38,64 +38,96 @@ builderCtrl.obtenerCheckbox = async(req, res) => {
 
 }
 
-builderCtrl.obtenerResponsables = async(req, res) => {
+// builderCtrl.obtenerResponsables = async(req, res) => {
 
-    const { sgi, role } = req.body;
+//     const { sgi, role } = req.body;
 
-    let registros = [];
+//     let registros = [];
 
-    await new sql.ConnectionPool(config).connect().then(pool => {
+//     await new sql.ConnectionPool(config).connect().then(pool => {
 
-        return pool.query `SELECT user_sgi AS sgi, user_name AS nombre FROM d_mantto_users WHERE user_role = 'Responsable'`
+//         return pool.query `SELECT user_sgi AS sgi, user_name AS nombre FROM d_mantto_users WHERE user_role = 'Responsable'`
 
-    }).then(result => {
+//     }).then(result => {
 
-        for (let i = 0; i < result.rowsAffected; i++) {
-            const registro = result.recordset[i];
-            registros.push(registro);
-        }
+//         for (let i = 0; i < result.rowsAffected; i++) {
+//             const registro = result.recordset[i];
+//             registros.push(registro);
+//         }
 
-        return res.status(200).json({ ok: true, registros: registros });
+//         return res.status(200).json({ ok: true, registros: registros });
 
-    }).catch(err => {
-        if (err) return res.status(401).json(err);
-    })
+//     }).catch(err => {
+//         if (err) return res.status(401).json(err);
+//     })
 
-}
+// }
 
 builderCtrl.obtenerAcciones = async(req, res) => {
 
     const { sgi, role, folio, id_sub_maquina } = req.body;
 
-    let registros = [];
+    // let registros = [];
+
+    const pool1 = new sql.ConnectionPool(config);
+    const pool1Connect = pool1.connect();
+
+    pool1.on('error', err => {
+        return res.status(401).send(err);
+    });
+
+    async function handlerObtenerAcciones() {
+
+        const acciones = [];
+        await pool1Connect;
+
+        try {
+
+            const request = pool1.request();
+
+            const result = await request.query(`SELECT ac_comment AS accion, CONVERT(varchar, ac_fecha_registro, 106) AS fecha_registro FROM d_mantto_anomalias_comments WHERE ac_folio = '${folio}' AND ac_sub_maquina = '${id_sub_maquina}'`);
+
+            for (let i = 0; i < result.rowsAffected; i++) {
+                acciones.push(result.recordset[i]);
+            }
+
+            return acciones;
+
+        } catch (error) {
+            console.log('SQL error', error);
+        }
+    }
+
+    const registros = await handlerObtenerAcciones();
+    return res.status(200).json({ ok: true, registros: registros });
 
     // // connect to your database
-    await sql.connect(config, function(err) {
+    // await sql.connect(config, function(err) {
 
-        if (err) return res.status(401).send(err);
+    //     if (err) return res.status(401).send(err);
 
-        const ps = new sql.PreparedStatement();
+    //     const ps = new sql.PreparedStatement();
 
-        ps.input('folio', sql.VarChar).input('id_sub_maquina', sql.VarChar)
-        ps.prepare('SELECT ac_comment AS accion, CONVERT(varchar, ac_fecha_registro, 106) AS fecha_registro FROM d_mantto_anomalias_comments WHERE ac_folio = @folio AND ac_sub_maquina = @id_sub_maquina', err => {
+    //     ps.input('folio', sql.VarChar).input('id_sub_maquina', sql.VarChar)
+    //     ps.prepare('SELECT ac_comment AS accion, CONVERT(varchar, ac_fecha_registro, 106) AS fecha_registro FROM d_mantto_anomalias_comments WHERE ac_folio = @folio AND ac_sub_maquina = @id_sub_maquina', err => {
 
-            if (err) return res.status(401).send(err);
+    //         if (err) return res.status(401).send(err);
 
-            ps.execute({ folio: folio, id_sub_maquina: id_sub_maquina }, (err, result) => {
+    //         ps.execute({ folio: folio, id_sub_maquina: id_sub_maquina }, (err, result) => {
 
-                if (err) return res.status(401).send(err);
+    //             if (err) return res.status(401).send(err);
 
-                for (let i = 0; i < result.rowsAffected; i++) {
-                    registros.push(result.recordset[i]);
-                }
+    //             for (let i = 0; i < result.rowsAffected; i++) {
+    //                 registros.push(result.recordset[i]);
+    //             }
 
-                return res.status(200).json({ ok: true, registros: registros });
+    //             return res.status(200).json({ ok: true, registros: registros });
 
-            });
+    //         });
 
-        });
+    //     });
 
-    });
+    // });
 
 }
 
