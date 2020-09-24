@@ -76,7 +76,7 @@ module.exports.sendPush = async(post) => {
 
     const promesas = [];
 
-    suscripciones.forEach(suscripcion => {
+    suscripciones.forEach((suscripcion, i) => {
 
         const pushProm = webpush.sendNotification(suscripcion, JSON.stringify(notificationPayload)).then(resp => {
             console.log(resp);
@@ -100,6 +100,8 @@ module.exports.sendPush = async(post) => {
 
     Promise.all(promesas).then(() => {
         // res.sendStatus(200);
+        suscripciones = suscripciones.filter(subs => !subs.borrar);
+        fs.writeFileSync(`${__dirname}/subs-db.json`, JSON.stringify(suscripciones));
         console.log('Resuelta');
     });
 
