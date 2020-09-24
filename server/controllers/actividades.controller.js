@@ -180,12 +180,15 @@ actividadesCtrl.obtenerActividad = async(req, res) => {
 
                 const request = pool1.request();
 
-                const result = await request.query(`SELECT sm.id_sub_maquina, sm.s_folio, m.m_maquina, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, a.a_categoria, u.Name AS a_resp_tarea FROM d_mantto_sub_maquinas sm LEFT JOIN c_mantto_actividades a ON sm.s_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON sm.s_maquina = m.id_maquina LEFT JOIN users u ON a.a_resp_tarea = u.SGI WHERE sm.s_id_sub_maquina = ${id_actividad} and a.a_resp_tarea = '${sgi}' AND sm.s_folio = '${folio}' AND sm.s_status = 'Pendiente'`);
+                const result = await request.query(`SELECT sm.id_sub_maquina, sm.s_folio, m.m_maquina, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, a.a_categoria, u.Name AS a_resp_tarea FROM d_mantto_sub_maquinas sm LEFT JOIN c_mantto_actividades a ON sm.s_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON sm.s_maquina = m.id_maquina LEFT JOIN users u ON a.a_jefe_tarea = u.SGI WHERE sm.s_id_sub_maquina = ${id_actividad} and sm.s_operador = '${sgi}' AND sm.s_folio = '${folio}' AND sm.s_status = 'Pendiente'`);
                 // const registros = result1.recordset;
 
                 for (let i = 0; i < result.rowsAffected; i++) {
                     registros.push(result.recordset[i]);
                 }
+
+                const result2 = await request.query(`UPDATE d_mantto_sub_maquinas SET s_tiempo_escaneo = GETDATE() WHERE s_folio = '${folio}' AND s_id_sub_maquina = ${id_actividad} AND s_status = 'Pendiente'`);
+                // console.log(result2);
 
                 return registros;
 
@@ -270,7 +273,7 @@ actividadesCtrl.realizarActividad = async(req, res) => {
 
                 if (opcion == 'OK') {
 
-                    const result = await request.query(`UPDATE d_mantto_sub_maquinas SET s_status = '${opcion}' WHERE s_id_sub_maquina = ${id_actividad} AND s_folio = '${folio}' AND s_status = 'Pendiente'`);
+                    const result = await request.query(`UPDATE d_mantto_sub_maquinas SET s_status = '${opcion}', s_tiempo_ejecutado = GETDATE() WHERE s_id_sub_maquina = ${id_actividad} AND s_folio = '${folio}' AND s_status = 'Pendiente'`);
                     console.log(result);
 
                     if (result.rowsAffected[0] > 0) {
@@ -372,12 +375,12 @@ actividadesCtrl.postearAnomalia = async(req, res) => {
 
             if (datos.anomalia === 'Otro') {
 
-                const result1 = await request.query(`UPDATE d_mantto_sub_maquinas SET s_status = 'NOK', s_comentarios = '${datos.descripcion}', s_tipo_anomalia = '${datos.anomalia}, ${datos.anomaliaEspecifica}', s_clasificacion_anomalia = '${datos.clasificacion}', s_anomalia = 1 WHERE s_id_sub_maquina = ${id_sub_maquina} AND s_folio = '${folio}' AND s_status = 'Pendiente'`);
+                const result1 = await request.query(`UPDATE d_mantto_sub_maquinas SET s_status = 'NOK', s_comentarios = '${datos.descripcion}', s_tipo_anomalia = '${datos.anomalia}, ${datos.anomaliaEspecifica}', s_clasificacion_anomalia = '${datos.clasificacion}', s_anomalia = 1, s_tiempo_ejecutado = GETDATE() WHERE s_id_sub_maquina = ${id_sub_maquina} AND s_folio = '${folio}' AND s_status = 'Pendiente'`);
                 // console.log(result1);
 
             } else {
 
-                const result1 = await request.query(`UPDATE d_mantto_sub_maquinas SET s_status = 'NOK', s_comentarios = '${datos.descripcion}', s_tipo_anomalia = '${datos.anomalia}', s_clasificacion_anomalia = '${datos.clasificacion}', s_anomalia = 1 WHERE s_id_sub_maquina = ${id_sub_maquina} AND s_folio = '${folio}' AND s_status = 'Pendiente'`);
+                const result1 = await request.query(`UPDATE d_mantto_sub_maquinas SET s_status = 'NOK', s_comentarios = '${datos.descripcion}', s_tipo_anomalia = '${datos.anomalia}', s_clasificacion_anomalia = '${datos.clasificacion}', s_anomalia = 1, s_tiempo_ejecutado = GETDATE() WHERE s_id_sub_maquina = ${id_sub_maquina} AND s_folio = '${folio}' AND s_status = 'Pendiente'`);
                 // console.log(result1);
 
             }

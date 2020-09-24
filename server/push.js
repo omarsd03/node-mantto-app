@@ -86,9 +86,9 @@ module.exports.sendPush = async(post) => {
 
             console.log(err);
 
-            // if (err.statusCode === 410) { // GONE, ya no existe
-            //     suscripciones[i].borrar = true;
-            // }
+            if (err.statusCode === 410) { // GONE, ya no existe
+                suscripciones[i].borrar = true;
+            }
 
         });
 
