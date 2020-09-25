@@ -3,7 +3,6 @@ const config = require('../database');
 const jwt = require("jsonwebtoken");
 const SEED = require("../config/config").SEED;
 
-const { generarJWT } = require('../helpers/jwt');
 const { getMenuFrontend } = require('../helpers/menu-frontend');
 
 const userCtrl = {};
@@ -29,8 +28,6 @@ userCtrl.signIn = async(req, res) => {
             const request = pool1.request();
 
             const result = await request.query(`SELECT * FROM d_mantto_users WHERE user_sgi = '${sgi}' AND user_password = '${password}'`);
-            console.log(result);
-            // const datos = result1.recordset;
 
             if (result.rowsAffected[0] > 0) {
 

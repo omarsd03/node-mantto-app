@@ -18,18 +18,9 @@ pushCtrl.obtenerKey = async(req, res) => {
 
 pushCtrl.obtenerSuscripcion = async(req, res) => {
 
-    console.log(req.body);
-
-    const subscription = req.body;
-    // console.log(suscripcion, sgi, role);
-    push.addSubscription(subscription);
-    // const suscribir = await push.addSubscription(subscription, sgi, role);
-    // console.log(suscribir);
-    // if (suscribir) {
-    //     res.status(200).json({ ok: true, 'message': 'Suscrito correctamente' });
-    // } else {
-    //     res.status(401).json({ ok: false, 'message': 'Error en la suscripcion' });
-    // }
+    const subscription = req.body.sub;
+    const { sgi, role } = req.body;
+    push.addSubscription(subscription, sgi, role);
     res.json('suscrito');
 
 }
@@ -41,7 +32,9 @@ pushCtrl.enviarNotificacion = async(req, res) => {
         cuerpo: req.body.cuerpo
     };
 
-    push.sendPush(post);
+    const { sgi, role } = req.body;
+
+    push.sendPush(post, sgi, role);
 
     res.json('Notificacion enviada');
 

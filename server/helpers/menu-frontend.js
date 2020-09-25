@@ -9,17 +9,17 @@ const getMenuFrontend = (role = 'Operador') => {
             },
             {
                 titulo: 'Anomalias Resueltas',
-                icono: 'faCheck',
+                icono: 'check',
                 ruta: '/realizadas'
             },
             {
-                titulo: 'Historico de Actividades',
-                icono: 'faExclamationTriangle',
+                titulo: 'Historico de Anomalias',
+                icono: 'history',
                 ruta: '/historico'
             },
             {
                 titulo: 'Acciones Planificadas',
-                icono: 'faHistory',
+                icono: 'clipboard-list',
                 ruta: '/acciones'
             }
         ];
@@ -35,22 +35,22 @@ const getMenuFrontend = (role = 'Operador') => {
             },
             {
                 titulo: 'Actividades Realizadas',
-                icono: 'faCheck',
+                icono: 'check',
                 ruta: '/realizadas'
             },
             {
                 titulo: 'Anomalias Reportadas',
-                icono: 'faExclamationTriangle',
+                icono: 'exclamation-triangle',
                 ruta: '/anomalias'
             },
             {
                 titulo: 'Historico de Actividades',
-                icono: 'faHistory',
+                icono: 'history',
                 ruta: '/historico'
             },
             {
                 titulo: 'Acciones Planificadas',
-                icono: 'faHistory',
+                icono: 'clipboard-list',
                 ruta: '/acciones'
             }
         ];

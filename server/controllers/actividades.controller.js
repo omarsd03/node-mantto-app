@@ -94,7 +94,8 @@ actividadesCtrl.obtenerPendientes = async(req, res) => {
 
                 const request = pool1.request();
 
-                const result = await request.query(`SELECT dsm.s_folio AS folio, dsm.s_maquina AS maquina, a.a_zona_maquina AS zona_maquina, dsm.s_actividad AS actividad, csm.s_nombre AS nombre, dsm.s_id_sub_maquina AS id_sub_maquina, a.a_prioridad AS prioridad, a.a_tarea AS tarea, dsm.s_tipo_anomalia AS tipo_anomalia, dsm.s_clasificacion_anomalia AS clasificacion_anomalia, dsm.s_comentarios AS descripcion_anomalia FROM progress_mantto p LEFT JOIN d_mantto_sub_maquinas dsm ON p.sub_actividad = dsm.s_id_sub_maquina LEFT JOIN c_mantto_sub_maquinas csm ON dsm.s_id_sub_maquina = csm.id_sub_maquina RIGHT JOIN c_mantto_actividades a ON dsm.s_actividad = a.id_actividad WHERE p.role = '${role}' AND p.status = 'Pendiente' AND dsm.s_usr_now = '${sgi}'`);
+                // const result = await request.query(`SELECT dsm.s_folio AS folio, dsm.s_maquina AS maquina, a.a_zona_maquina AS zona_maquina, dsm.s_actividad AS actividad, csm.s_nombre AS nombre, dsm.s_id_sub_maquina AS id_sub_maquina, a.a_prioridad AS prioridad, a.a_tarea AS tarea, dsm.s_tipo_anomalia AS tipo_anomalia, dsm.s_clasificacion_anomalia AS clasificacion_anomalia, dsm.s_comentarios AS descripcion_anomalia FROM progress_mantto p LEFT JOIN d_mantto_sub_maquinas dsm ON p.sub_actividad = dsm.s_id_sub_maquina LEFT JOIN c_mantto_sub_maquinas csm ON dsm.s_id_sub_maquina = csm.id_sub_maquina RIGHT JOIN c_mantto_actividades a ON dsm.s_actividad = a.id_actividad WHERE p.role = '${role}' AND p.status = 'Pendiente' AND dsm.s_usr_now = '${sgi}'`);
+                const result = await request.query(`SELECT distinct dsm.s_folio AS folio, dsm.s_maquina AS maquina, a.a_zona_maquina AS zona_maquina, dsm.s_actividad AS actividad, csm.s_nombre AS nombre, dsm.s_id_sub_maquina AS id_sub_maquina, a.a_prioridad AS prioridad, a.a_tarea AS tarea, dsm.s_tipo_anomalia AS tipo_anomalia, dsm.s_clasificacion_anomalia AS clasificacion_anomalia, dsm.s_comentarios AS descripcion_anomalia FROM progress_mantto p INNER JOIN d_mantto_sub_maquinas dsm ON p.sub_actividad = dsm.s_id_sub_maquina INNER JOIN c_mantto_sub_maquinas csm ON dsm.s_id_sub_maquina = csm.id_sub_maquina INNER JOIN c_mantto_actividades a ON dsm.s_actividad = a.id_actividad WHERE p.role = '${role}' AND p.status = 'Pendiente' AND dsm.s_usr_now = '${sgi}' AND dsm.s_status = 'NOK'`);
                 // const registros = result1.recordset;
 
                 for (let i = 0; i < result.rowsAffected; i++) {
@@ -324,7 +325,12 @@ actividadesCtrl.realizarActividad = async(req, res) => {
                 const result2 = await request.query(`UPDATE progress_mantto SET status = 'Liberado', fecha_movimiento = GETDATE() WHERE folio = '${folio}' AND sub_actividad = ${id_actividad} AND role = 'Responsable' AND approval = '${sgi}'`);
                 console.log(result2);
 
-                return true;
+                const result = await request.query(`SELECT p.approval, p.folio, p.role, sm.s_nombre AS sub_maquina FROM progress_mantto p INNER JOIN c_mantto_sub_maquinas sm ON p.sub_actividad = sm.id_sub_maquina WHERE folio = '${folio}' AND role = 'Operador' AND sub_actividad = ${id_actividad}`);
+                const data = result.recordset[0];
+
+                return data;
+
+                // return true;
 
             } catch (error) {
                 console.log('SQL error', error);
@@ -335,7 +341,7 @@ actividadesCtrl.realizarActividad = async(req, res) => {
         const resuelta = await corregirAnomalia();
 
         if (resuelta) {
-            return res.status(200).json({ ok: true, message: 'La anomalia ha sido corregida!' });
+            return res.status(200).json({ ok: true, message: 'La anomalia ha sido corregida!', data: resuelta });
         } else {
             return res.status(400).json({ ok: false, message: 'Error al corregir la anomalia' });
         }
@@ -366,7 +372,7 @@ actividadesCtrl.postearAnomalia = async(req, res) => {
 
     async function registrarAnomalia() {
 
-        // const registros = [];
+        const registros = [];
         await pool1Connect;
 
         try {
@@ -392,14 +398,21 @@ actividadesCtrl.postearAnomalia = async(req, res) => {
 
             });
 
-            return true;
+            const result = await request.query(`SELECT dsm.s_folio AS folio, a.a_prioridad AS prioridad, m.m_maquina AS nombre_maquina, a.a_jefe_tarea AS responsable, u.user_role AS role, u.user_payload AS payload FROM d_mantto_sub_maquinas dsm INNER JOIN c_mantto_actividades a ON dsm.s_actividad = a.id_actividad INNER JOIN c_mantto_maquinas m ON a.a_maquina = m.id_maquina INNER JOIN d_mantto_users u ON a.a_jefe_tarea = u.user_sgi WHERE dsm.s_folio = '${folio}' AND dsm.s_id_sub_maquina = ${id_sub_maquina}`)
+            for (let i = 0; i < result.rowsAffected; i++) {
+                registros.push(result.recordset[i]);
+            }
+
+            return registros;
+            // return true;
+
 
         } catch (error) {
             console.log('SQL error', error);
         }
     }
 
-    function administrarFlujo() {
+    function administrarFlujo(datos) {
 
         return pool2Connect.then((pool) => {
             pool.request() // or: new sql.Request(pool2)
@@ -414,7 +427,7 @@ actividadesCtrl.postearAnomalia = async(req, res) => {
                         return false;
                     }
                     console.log(result);
-                    return res.status(200).json({ ok: true, message: 'Anomalia Registrada Correctamente', folio: folio });
+                    return res.status(200).json({ ok: true, message: 'Anomalia Registrada Correctamente', folio: folio, datos: datos[0] });
                 })
         }).catch(err => {
             console.log(err);
@@ -423,10 +436,11 @@ actividadesCtrl.postearAnomalia = async(req, res) => {
 
     }
 
-    const anomalia = registrarAnomalia();
+    const anomalia = await registrarAnomalia();
+    console.log(anomalia);
 
     if (anomalia) {
-        administrarFlujo();
+        administrarFlujo(anomalia);
     } else {
         return res.status(400).json({ mensaje: 'Error en el servidor' });
     }
@@ -666,7 +680,10 @@ actividadesCtrl.agregarAcciones = async(req, res) => {
                 console.log(result2);
             });
 
-            return true;
+            const result = await request.query(`SELECT p.approval, p.folio, p.role, sm.s_nombre AS sub_maquina FROM progress_mantto p INNER JOIN c_mantto_sub_maquinas sm ON p.sub_actividad = sm.id_sub_maquina WHERE folio = '${general.folio}' AND role = 'Operador' AND sub_actividad = ${general.id_sub_maquina}`);
+            const data = result.recordset[0];
+
+            return data;
 
         } catch (error) {
             console.log('SQL error', error);
@@ -677,7 +694,7 @@ actividadesCtrl.agregarAcciones = async(req, res) => {
     const registros = await handlerAcciones();
 
     if (registros) {
-        return res.status(200).json({ ok: true, message: 'Acciones Registradas Correctamente' });
+        return res.status(200).json({ ok: true, message: 'Acciones Registradas Correctamente', data: registros });
     } else {
         return res.status(400).json({ ok: false, message: 'Error al registrar las acciones' });
     }
