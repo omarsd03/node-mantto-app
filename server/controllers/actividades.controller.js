@@ -28,7 +28,8 @@ actividadesCtrl.obtenerPendientes = async(req, res) => {
 
                 const request = pool1.request();
 
-                const result = await request.query(`SELECT g.g_folio, m.id_maquina, m.m_maquina, a.id_actividad, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, g.g_operador, g.g_total_pendientes FROM d_mantto_general g LEFT JOIN c_mantto_actividades a ON g.g_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON g.g_maquina = m.id_maquina WHERE g.g_operador = '${sgi}' AND g.g_status_now = 'Pendiente'`);
+                // const result = await request.query(`SELECT g.g_folio, m.id_maquina, m.m_maquina, a.id_actividad, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, g.g_operador, g.g_total_pendientes FROM d_mantto_general g LEFT JOIN c_mantto_actividades a ON g.g_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON g.g_maquina = m.id_maquina WHERE g.g_operador = '${sgi}' AND g.g_status_now = 'Pendiente'`);
+                const result = await request.query(`SELECT g.g_folio, m.id_maquina, m.m_maquina, a.id_actividad, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, g.g_operador, g.g_total_pendientes, ISNULL(f.path, 'Files/no-img//no-img.jpg') AS path FROM d_mantto_general g LEFT JOIN c_mantto_actividades a ON g.g_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON g.g_maquina = m.id_maquina LEFT JOIN d_mantto_imagenes img ON a.id_actividad = img.img_actividad LEFT JOIN master_files f ON img.img_file = f.id_file WHERE g.g_operador = '${sgi}' AND g.g_status_now = 'Pendiente'`);
                 // const registros = result1.recordset;
 
                 for (let i = 0; i < result.rowsAffected; i++) {
