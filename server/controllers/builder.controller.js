@@ -7,24 +7,65 @@ builderCtrl.obtenerCheckbox = async(req, res) => {
 
     const { sgi, role } = req.body;
 
-    let registros = [];
+    const pool1 = new sql.ConnectionPool(config);
+    const pool1Connect = pool1.connect();
 
-    await new sql.ConnectionPool(config).connect().then(pool => {
+    pool1.on('error', err => {
+        return res.status(401).send(err);
+    });
 
-        return pool.query `SELECT id_catalogo AS id, c_nombre AS value, c_valor AS descripcion FROM c_mantto_general WHERE c_categoria = 'Anomalia'`
+    async function handlerCheckbox() {
 
-    }).then(result => {
+        const checkbox = [];
+        const categorias = [];
 
-        for (let i = 0; i < result.rowsAffected; i++) {
-            const registro = result.recordset[i];
-            registros.push(registro);
+        await pool1Connect;
+
+        try {
+
+            const request = pool1.request();
+
+            const result = await request.query(`SELECT id_catalogo AS id, c_nombre AS value, c_valor AS descripcion FROM c_mantto_general WHERE c_categoria = 'Anomalia'`)
+
+            for (let i = 0; i < result.rowsAffected; i++) {
+                checkbox.push(result.recordset[i]);
+            }
+
+            const result2 = await request.query(`SELECT c_nombre AS categorias FROM c_mantto_general WHERE c_categoria = 'Tipo' AND c_tipo = 'Categoria'`);
+
+            for (let i = 0; i < result2.rowsAffected; i++) {
+                categorias.push(result2.recordset[i]);
+            }
+
+            return { checkbox: checkbox, categorias: categorias };
+
+        } catch (error) {
+            console.log('SQL error', error);
         }
 
-        return res.status(200).json({ ok: true, registros: registros });
+    }
 
-    }).catch(err => {
-        if (err) return res.status(401).json(err);
-    })
+    const registros = await handlerCheckbox();
+    return res.status(200).json({ ok: true, registros: registros.checkbox, categorias: registros.categorias });
+
+    // let registros = [];
+
+    // await new sql.ConnectionPool(config).connect().then(pool => {
+
+    //     return pool.query `SELECT id_catalogo AS id, c_nombre AS value, c_valor AS descripcion FROM c_mantto_general WHERE c_categoria = 'Anomalia'`
+
+    // }).then(result => {
+
+    //     for (let i = 0; i < result.rowsAffected; i++) {
+    //         const registro = result.recordset[i];
+    //         registros.push(registro);
+    //     }
+
+    //     return res.status(200).json({ ok: true, registros: registros });
+
+    // }).catch(err => {
+    //     if (err) return res.status(401).json(err);
+    // })
 
 }
 
