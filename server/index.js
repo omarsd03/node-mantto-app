@@ -5,7 +5,8 @@ const cors = require('cors');
 const app = express();
 
 // Settings
-app.set('port', process.env.PORT || 8080);
+// app.set('port', process.env.PORT || 3000); // Prod
+app.set('port', process.env.PORT || 3000); // Dev
 
 // Middlewares
 app.use(cors({ origin: true }));
