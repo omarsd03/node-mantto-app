@@ -47,34 +47,6 @@ actividadesCtrl.obtenerPendientes = async(req, res) => {
         const registros = await handlerPendientes();
         return res.status(200).json({ ok: true, registros: registros });
 
-        // connect to your database
-        // await sql.connect(config, function(err) {
-
-        //     if (err) return res.status(401).send(err);
-
-        //     let ps = new sql.PreparedStatement();
-        //     ps.input('sgi', sql.VarChar);
-        //     ps.input('status', sql.VarChar);
-        //     ps.prepare('SELECT g.g_folio, m.id_maquina, m.m_maquina, a.id_actividad, a.a_prioridad, a.a_zona_maquina, a.a_tarea, a.a_maquina_parada, g.g_operador, g.g_total_pendientes FROM d_mantto_general g LEFT JOIN c_mantto_actividades a ON g.g_actividad = a.id_actividad RIGHT JOIN c_mantto_maquinas m ON g.g_maquina = m.id_maquina WHERE g.g_operador = @sgi AND g.g_status_now = @status', err => {
-
-        //         if (err) return res.status(401).send(err);
-
-        //         ps.execute({ sgi: sgi, status: 'Pendiente' }, (err, result) => {
-
-        //             if (err) return res.status(401).send(err);
-
-        //             for (let i = 0; i < result.rowsAffected; i++) {
-        //                 registros.push(result.recordset[i]);
-        //             }
-
-        //             return res.status(200).json({ ok: true, registros: registros });
-
-        //         });
-
-        //     });
-
-        // });
-
     }
 
     if (role == 'Responsable') {
