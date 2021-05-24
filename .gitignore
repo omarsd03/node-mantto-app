@@ -1,2 +1,3 @@
 node_modules/
-server/uploads/
+server/uploads/NOK/*
+server/uploads/OK/*
