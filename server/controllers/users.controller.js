@@ -48,7 +48,8 @@ userCtrl.signIn = async(req, res) => {
 
     if (user) {
 
-        const token = jwt.sign({ _id: user.id_user }, SEED, { expiresIn: '12h' });
+        // const token = jwt.sign({ _id: user.id_user }, SEED, { expiresIn: '12h' });
+        const token = jwt.sign({ _id: user.id_user }, SEED, { expiresIn: '1h' });
         user.user_password = ':)';
 
         return res.status(200).json({ ok: true, user, token, menu: getMenuFrontend(user.user_role) });

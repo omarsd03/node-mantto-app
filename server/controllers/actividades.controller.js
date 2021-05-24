@@ -577,6 +577,7 @@ actividadesCtrl.obtenerAnomalias = async(req, res) => {
 actividadesCtrl.cargarFoto = async(req, res) => {
 
     const { tipo, folio, sgi, id_sub_maquina } = req.body;
+    console.log({ tipo, folio, sgi, id_sub_maquina });
 
     if (!req.files || Object.keys(req.files).length === 0) {
         return res.status(400).json({ msg: 'No existen archivos cargados' });
@@ -600,19 +601,21 @@ actividadesCtrl.cargarFoto = async(req, res) => {
 
     // const nombreArchivo = `${ uuidv4() }.${ extensionArchivo }`;
     const nombreArchivo = `${ folio }-${ id_sub_maquina }-${ uuidv4() }.${ extensionArchivo }`;
-    const path = `server/uploads/${tipo}/${nombreArchivo}`;
+    // const pathUpload = `server/uploads/${tipo}/${nombreArchivo}`;
+    const pathUpload = path.join(__dirname, `../uploads/${tipo}/${nombreArchivo}`);
     const pathMasterFiles = `uploads/${tipo}/${nombreArchivo}`;
 
-    file.mv(path, (err) => {
+    console.log(pathUpload);
+
+    file.mv(pathUpload, (err) => {
 
         if (err) {
+            console.log(err);
             return res.status(500).json(err);
         }
 
         // return res.json({ ok: true, msg: 'Archivo cargado' });
 
-        // TODO: Ajustar el metodo para guardar archivos
-        // async/await style:
         const pool1 = new sql.ConnectionPool(config);
         const pool1Connect = pool1.connect();
 
